@@ -1,11 +1,14 @@
 package merkletree
 
-import "crypto/sha256"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+)
 
 type MerkleTreeNode struct {
 	Hash  [32]byte
 	Size  uint64
-	Links []*MerkleTreeNode
+	Links []MerkleTreeNode
 }
 
 func NewMerkleTreeNode(hash [32]byte, size uint64) *MerkleTreeNode {
@@ -21,10 +24,10 @@ func NewMerkleTreeNode(hash [32]byte, size uint64) *MerkleTreeNode {
 func CreateMerkleTree(hashs [][32]byte, sizes []uint64) *MerkleTreeNode {
 	allHashs := make([]byte, 0)
 	var totalSize uint64 = 0
-	links := make([]*MerkleTreeNode, 0)
+	links := make([]MerkleTreeNode, 0)
 
 	for index := range hashs {
-		links = append(links, NewMerkleTreeNode(hashs[index], sizes[index]))
+		links = append(links, *NewMerkleTreeNode(hashs[index], sizes[index]))
 		totalSize = totalSize + sizes[index]
 		allHashs = append(allHashs, hashs[index][:]...)
 	}
@@ -34,4 +37,8 @@ func CreateMerkleTree(hashs [][32]byte, sizes []uint64) *MerkleTreeNode {
 		Size:  totalSize,
 		Links: links,
 	}
+}
+
+func (merkleTreeNode *MerkleTreeNode) HashHexString() string {
+	return hex.EncodeToString(merkleTreeNode.Hash[:])
 }

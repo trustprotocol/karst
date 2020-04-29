@@ -76,7 +76,7 @@ var putCmd = &cobra.Command{
 		partHashs := make([][32]byte, 0)
 		partSizes := make([]uint64, 0)
 
-		for i := uint64(1); i < totalPartsNum+1; i++ {
+		for i := uint64(0); i < totalPartsNum; i++ {
 			// Get part of file
 			partSize := int(math.Min(float64(Config.FilePartSize), float64(fileInfo.Size()-int64(i*Config.FilePartSize))))
 			partBuffer := make([]byte, partSize)
@@ -102,9 +102,19 @@ var putCmd = &cobra.Command{
 			}
 		}
 
-		// Save file information into db
-		fmt.Println(merkletree.CreateMerkleTree(partHashs, partSizes))
-		if err = db.Put([]byte(md5hashString), []byte("123"), nil); err != nil {
+		// Rename folder and save file information into db
+		fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
+		newFileStorePath := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.HashHexString())
+
+		if err = os.Rename(fileStorePath, newFileStorePath); err != nil {
+			panic(fmt.Errorf("Fatal error in renaming '%s' to '%s': %s\n", fileStorePath, newFileStorePath, err))
+		}
+
+		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.HashHexString()), nil); err != nil {
+			panic(fmt.Errorf("Fatal error in putting information into leveldb: %s\n", err))
+		}
+
+		if err = db.Put([]byte(fileMerkleTree.HashHexString()), []byte(md5hashString), nil); err != nil {
 			panic(fmt.Errorf("Fatal error in putting information into leveldb: %s\n", err))
 		}
 
