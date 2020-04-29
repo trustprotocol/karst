@@ -9,15 +9,19 @@ import (
 )
 
 type Configuration struct {
-	KarstPath  string
-	TeeBaseUrl string
+	KarstPath      string
+	ConfigFilePath string
+	FilesPath      string
+	DbPath         string
+	FilePartSize   uint64
+	TeeBaseUrl     string
 }
 
 var Config Configuration
 
 func ReadConfig() {
 	// Get base karst paths
-	karstPath, configFilePath := util.GetKarstPaths()
+	karstPath, configFilePath, filesPath, dbPath := util.GetKarstPaths()
 
 	// Check directory
 	if !util.IsDirOrFileExist(karstPath) || !util.IsDirOrFileExist(configFilePath) {
@@ -34,6 +38,10 @@ func ReadConfig() {
 	// Set configuration
 	Config = Configuration{}
 	Config.KarstPath = karstPath
+	Config.ConfigFilePath = configFilePath
+	Config.FilesPath = filesPath
+	Config.DbPath = dbPath
+	Config.FilePartSize = 1 * (1 << 20) // 1 MB
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
 }
 

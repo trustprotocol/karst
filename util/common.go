@@ -2,25 +2,20 @@ package util
 
 import (
 	"os"
-	"runtime"
+	"path/filepath"
 )
 
-func GetKarstPaths() (string, string) {
-	karstPath := os.Getenv("HOME") + "/.karst"
-	if runtime.GOOS == "windows" {
-		karstPath = os.Getenv("HOME") + "\\.karst"
-	}
-
+func GetKarstPaths() (string, string, string, string) {
+	karstPath := filepath.FromSlash(os.Getenv("HOME") + "/.karst")
 	if karstTmpPath := os.Getenv("KARST_PATH"); karstTmpPath != "" {
 		karstPath = karstTmpPath
 	}
 
-	configFilePath := karstPath + "/config.json"
-	if runtime.GOOS == "windows" {
-		configFilePath = karstPath + "\\config.json"
-	}
+	configFilePath := filepath.FromSlash(karstPath + "/config.json")
+	filesPath := filepath.FromSlash(karstPath + "/files")
+	dbPath := filepath.FromSlash(karstPath + "/db")
 
-	return karstPath, configFilePath
+	return karstPath, configFilePath, filesPath, dbPath
 }
 
 func IsDirOrFileExist(path string) bool {
