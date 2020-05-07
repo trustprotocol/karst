@@ -46,3 +46,10 @@ var initCmd = &cobra.Command{
 		}
 	},
 }
+
+func init() {
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+	log.SetLevel(log.InfoLevel)
+}
