@@ -1,8 +1,8 @@
 package tee
 
 import (
+	"errors"
 	"karst/merkletree"
-	"os"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -13,16 +13,15 @@ type Tee struct {
 	Backup  string
 }
 
-func NewTee(baseUrl string, backup string) *Tee {
+func NewTee(baseUrl string, backup string) (*Tee, error) {
 	if backup == "" || baseUrl == "" {
-		log.Errorf("Fatal error in getting backup and tee base url")
-		os.Exit(-1)
+		return nil, errors.New("Fatal error in getting backup and tee base url")
 	}
 
 	return &Tee{
 		BaseUrl: baseUrl,
 		Backup:  backup,
-	}
+	}, nil
 }
 
 func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, error) {
@@ -30,8 +29,7 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	log.Infof("connecting to %s", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Errorf("Fatal error in connecting TEE: %s", err)
-		panic(err)
+		return nil, err
 	}
 	defer c.Close()
 

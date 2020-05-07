@@ -122,22 +122,12 @@ var putCmd = &cobra.Command{
 		}
 		bar.Finish()
 
-		// Rename folder and save file information into db
+		// Rename folder
 		fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
 		newFileStorePath := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.Hash)
 
 		if err = os.Rename(fileStorePath, newFileStorePath); err != nil {
 			log.Errorf("Fatal error in renaming '%s' to '%s': %s", fileStorePath, newFileStorePath, err)
-			panic(err)
-		}
-
-		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.Hash), nil); err != nil {
-			log.Errorf("Fatal error in putting information into leveldb: %s", err)
-			panic(err)
-		}
-
-		if err = db.Put([]byte(fileMerkleTree.Hash), []byte(md5hashString), nil); err != nil {
-			log.Errorf("Fatal error in putting information into leveldb: %s", err)
 			panic(err)
 		}
 
@@ -150,8 +140,24 @@ var putCmd = &cobra.Command{
 		log.Debugf("MerkleTree is %s", string(fileMerkleTreeBytes))
 
 		// Send merkle tree to TEE for sealing
-		tee := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
+		tee, err := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
+		if err != nil {
+			log.Errorf("Fatal error in creating tee structure: %s", err)
+			panic(err)
+		}
+
 		tee.Seal(newFileStorePath, fileMerkleTree)
+
+		// Save file information into db
+		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.Hash), nil); err != nil {
+			log.Errorf("Fatal error in putting information into leveldb: %s", err)
+			panic(err)
+		}
+
+		if err = db.Put([]byte(fileMerkleTree.Hash), []byte(md5hashString), nil); err != nil {
+			log.Errorf("Fatal error in putting information into leveldb: %s", err)
+			panic(err)
+		}
 
 		log.Infof("Put '%s' successfully in %s ! It root hash is '%s'.", args[0], time.Since(timeStart), fileMerkleTree.Hash)
 	},
