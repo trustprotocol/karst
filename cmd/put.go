@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cheggaaa/pb"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -83,7 +84,11 @@ var putCmd = &cobra.Command{
 		partHashs := make([][32]byte, 0)
 		partSizes := make([]uint64, 0)
 
+		bar := pb.StartNew(int(totalPartsNum))
 		for i := uint64(0); i < totalPartsNum; i++ {
+			// Bar
+			bar.Increment()
+
 			// Get part of file
 			partSize := int(math.Min(float64(Config.FilePartSize), float64(fileInfo.Size()-int64(i*Config.FilePartSize))))
 			partBuffer := make([]byte, partSize)
@@ -113,6 +118,7 @@ var putCmd = &cobra.Command{
 				panic(err)
 			}
 		}
+		bar.Finish()
 
 		// Rename folder and save file information into db
 		fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
