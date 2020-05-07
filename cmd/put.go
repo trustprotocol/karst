@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	. "karst/config"
 	"karst/merkletree"
+	"karst/tee"
 	"math"
 	"os"
 	"path/filepath"
@@ -84,6 +85,7 @@ var putCmd = &cobra.Command{
 		partHashs := make([][32]byte, 0)
 		partSizes := make([]uint64, 0)
 
+		// Split file to parts
 		bar := pb.StartNew(int(totalPartsNum))
 		for i := uint64(0); i < totalPartsNum; i++ {
 			// Bar
@@ -146,6 +148,11 @@ var putCmd = &cobra.Command{
 		}
 
 		log.Debugf("MerkleTree is %s", string(fileMerkleTreeBytes))
+
+		// Send merkle tree to TEE for sealing
+		tee := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
+		tee.Seal(newFileStorePath, fileMerkleTree)
+
 		log.Infof("Put '%s' successfully in %s ! It root hash is '%s'.", args[0], time.Since(timeStart), fileMerkleTree.Hash)
 	},
 }
