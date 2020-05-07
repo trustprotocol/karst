@@ -1,10 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"karst/util"
-	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -15,6 +14,7 @@ type Configuration struct {
 	DbPath         string
 	FilePartSize   uint64
 	TeeBaseUrl     string
+	LogLevel       string
 }
 
 var Config Configuration
@@ -25,14 +25,15 @@ func ReadConfig() {
 
 	// Check directory
 	if !util.IsDirOrFileExist(karstPath) || !util.IsDirOrFileExist(configFilePath) {
-		fmt.Printf("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.\n", karstPath)
-		os.Exit(1)
+		log.Infof("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPath)
+		panic(nil)
 	}
 
 	// Read configuration
 	viper.SetConfigFile(configFilePath)
 	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		log.Errorf("Fatal error config file: %s \n", err)
+		panic(err)
 	}
 
 	// Set configuration
@@ -43,13 +44,21 @@ func ReadConfig() {
 	Config.DbPath = dbPath
 	Config.FilePartSize = 1 * (1 << 20) // 1 MB
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
+	Config.LogLevel = viper.GetString("log_level")
+	if Config.LogLevel == "debug" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 }
 
 func WriteDefaultConfig(configFilePath string) {
 	viper.SetConfigType("json")
 	viper.Set("tee_base_url", "http://0.0.0.0:12222/api/v0")
+	viper.Set("log_level", "debug")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
-		panic(fmt.Errorf("Fatal error in creating karst configuration file: %s\n", err))
+		log.Errorf("Fatal error in creating karst configuration file: %s\n", err)
+		panic(err)
 	}
 }

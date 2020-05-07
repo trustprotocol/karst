@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	. "karst/config"
@@ -15,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -35,44 +35,50 @@ var putCmd = &cobra.Command{
 		ReadConfig()
 		db, err := leveldb.OpenFile(Config.DbPath, nil)
 		if err != nil {
-			panic(fmt.Errorf("Fatal error in opening db: %s\n", err))
+			log.Errorf("Fatal error in opening db: %s\n", err)
+			panic(err)
 		}
 		defer db.Close()
 
 		// Get base file information
 		file, err := os.Open(args[0])
 		if err != nil {
-			panic(fmt.Errorf("Fatal error in opening '%s': %s\n", args[0], err))
+			log.Errorf("Fatal error in opening '%s': %s", args[0], err)
+			panic(err)
 		}
 		defer file.Close()
 
 		md5hash := md5.New()
 		if _, err = io.Copy(md5hash, file); err != nil {
-			panic(fmt.Errorf("Fatal error in calculating md5 of '%s': %s\n", args[0], err))
+			log.Errorf("Fatal error in calculating md5 of '%s': %s", args[0], err)
+			panic(err)
 		}
 		md5hashString := hex.EncodeToString(md5hash.Sum(nil))
 
 		if _, err = file.Seek(0, 0); err != nil {
-			panic(fmt.Errorf("Fatal error in seek '%s': %s\n", args[0], err))
+			log.Errorf("Fatal error in calculating md5 of '%s': %s", args[0], err)
+			panic(err)
 		}
 
 		fileStorePath := filepath.FromSlash(Config.FilesPath + "/" + md5hashString)
 		if ok, _ := db.Has([]byte(md5hashString), nil); ok {
-			fmt.Printf("This '%s' has already been stored, file md5 is: %s\n", args[0], md5hashString)
+			log.Infof("This '%s' has already been stored, file md5 is: %s", args[0], md5hashString)
 			return
 		} else {
 			if err := os.MkdirAll(fileStorePath, os.ModePerm); err != nil {
-				panic(fmt.Errorf("Fatal error in creating file store directory: %s\n", err))
+				log.Errorf("Fatal error in creating file store directory: %s", err)
+				panic(err)
 			}
 		}
 
 		fileInfo, err := file.Stat()
 		if err != nil {
-			panic(fmt.Errorf("Fatal error in getting '%s' information: %s\n", args[0], err))
+			log.Errorf("Fatal error in getting '%s' information: %s", args[0], err)
+			panic(err)
 		}
 
 		totalPartsNum := uint64(math.Ceil(float64(fileInfo.Size()) / float64(Config.FilePartSize)))
-		fmt.Printf("Splitting '%s' to %d parts.\n", args[0], totalPartsNum)
+		log.Infof("Splitting '%s' to %d parts.", args[0], totalPartsNum)
 		partHashs := make([][32]byte, 0)
 		partSizes := make([]uint64, 0)
 
@@ -82,7 +88,8 @@ var putCmd = &cobra.Command{
 			partBuffer := make([]byte, partSize)
 
 			if _, err = file.Read(partBuffer); err != nil {
-				panic(fmt.Errorf("Fatal error in getting part of '%s': %s\n", args[0], err))
+				log.Errorf("Fatal error in getting part of '%s': %s", args[0], err)
+				panic(err)
 			}
 
 			// Get part information
@@ -93,12 +100,16 @@ var putCmd = &cobra.Command{
 			partFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(i, 10) + "-" + partHashString)
 
 			// Write to disk
-			if _, err = os.Create(partFileName); err != nil {
-				panic(fmt.Errorf("Fatal error in creating the part '%s' of '%s': %s\n", partFileName, args[0], err))
+			partFile, err := os.Create(partFileName)
+			if err != nil {
+				log.Errorf("Fatal error in creating the part '%s' of '%s': %s", partFileName, args[0], err)
+				panic(err)
 			}
 
+			partFile.Close()
 			if err = ioutil.WriteFile(partFileName, partBuffer, os.ModeAppend); err != nil {
-				panic(fmt.Errorf("Fatal error in writing the part '%s' of '%s': %s\n", partFileName, args[0], err))
+				log.Errorf("Fatal error in writing the part '%s' of '%s': %s\n", partFileName, args[0], err)
+				panic(err)
 			}
 		}
 
@@ -107,17 +118,19 @@ var putCmd = &cobra.Command{
 		newFileStorePath := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.HashHexString())
 
 		if err = os.Rename(fileStorePath, newFileStorePath); err != nil {
-			panic(fmt.Errorf("Fatal error in renaming '%s' to '%s': %s\n", fileStorePath, newFileStorePath, err))
+			log.Errorf("Fatal error in renaming '%s' to '%s': %s\n", fileStorePath, newFileStorePath, err)
+			panic(err)
 		}
 
 		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.HashHexString()), nil); err != nil {
-			panic(fmt.Errorf("Fatal error in putting information into leveldb: %s\n", err))
+			log.Errorf("Fatal error in putting information into leveldb: %s\n", err)
+			panic(err)
 		}
 
 		if err = db.Put([]byte(fileMerkleTree.HashHexString()), []byte(md5hashString), nil); err != nil {
-			panic(fmt.Errorf("Fatal error in putting information into leveldb: %s\n", err))
+			log.Errorf("Fatal error in putting information into leveldb: %s\n", err)
+			panic(err)
 		}
-
-		fmt.Printf("Put '%s' successfully in %s !\n", args[0], time.Since(timeStart))
+		log.Infof("Put '%s' successfully in %s ! It root hash is '%s'.", args[0], time.Since(timeStart), fileMerkleTree.HashHexString())
 	},
 }
