@@ -2,6 +2,7 @@ package config
 
 import (
 	"karst/util"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -26,7 +27,7 @@ func ReadConfig() {
 	// Check directory
 	if !util.IsDirOrFileExist(karstPath) || !util.IsDirOrFileExist(configFilePath) {
 		log.Infof("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPath)
-		panic(nil)
+		os.Exit(-1)
 	}
 
 	// Read configuration
@@ -47,18 +48,23 @@ func ReadConfig() {
 	Config.LogLevel = viper.GetString("log_level")
 	if Config.LogLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
 	}
 }
 
 func WriteDefaultConfig(configFilePath string) {
 	viper.SetConfigType("json")
 	viper.Set("tee_base_url", "http://0.0.0.0:12222/api/v0")
-	viper.Set("log_level", "debug")
+	viper.Set("log_level", "")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		log.Errorf("Fatal error in creating karst configuration file: %s\n", err)
 		panic(err)
 	}
+}
+
+func init() {
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+	log.SetLevel(log.InfoLevel)
 }

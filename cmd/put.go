@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	. "karst/config"
@@ -108,29 +109,37 @@ var putCmd = &cobra.Command{
 
 			partFile.Close()
 			if err = ioutil.WriteFile(partFileName, partBuffer, os.ModeAppend); err != nil {
-				log.Errorf("Fatal error in writing the part '%s' of '%s': %s\n", partFileName, args[0], err)
+				log.Errorf("Fatal error in writing the part '%s' of '%s': %s", partFileName, args[0], err)
 				panic(err)
 			}
 		}
 
 		// Rename folder and save file information into db
 		fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
-		newFileStorePath := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.HashHexString())
+		newFileStorePath := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.Hash)
 
 		if err = os.Rename(fileStorePath, newFileStorePath); err != nil {
-			log.Errorf("Fatal error in renaming '%s' to '%s': %s\n", fileStorePath, newFileStorePath, err)
+			log.Errorf("Fatal error in renaming '%s' to '%s': %s", fileStorePath, newFileStorePath, err)
 			panic(err)
 		}
 
-		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.HashHexString()), nil); err != nil {
-			log.Errorf("Fatal error in putting information into leveldb: %s\n", err)
+		if err = db.Put([]byte(md5hashString), []byte(fileMerkleTree.Hash), nil); err != nil {
+			log.Errorf("Fatal error in putting information into leveldb: %s", err)
 			panic(err)
 		}
 
-		if err = db.Put([]byte(fileMerkleTree.HashHexString()), []byte(md5hashString), nil); err != nil {
-			log.Errorf("Fatal error in putting information into leveldb: %s\n", err)
+		if err = db.Put([]byte(fileMerkleTree.Hash), []byte(md5hashString), nil); err != nil {
+			log.Errorf("Fatal error in putting information into leveldb: %s", err)
 			panic(err)
 		}
-		log.Infof("Put '%s' successfully in %s ! It root hash is '%s'.", args[0], time.Since(timeStart), fileMerkleTree.HashHexString())
+
+		fileMerkleTreeBytes, err := json.Marshal(fileMerkleTree)
+		if err != nil {
+			log.Errorf("Fatal error in converting merkle tree into string: %s", err)
+			panic(err)
+		}
+
+		log.Debugf("MerkleTree is %s", string(fileMerkleTreeBytes))
+		log.Infof("Put '%s' successfully in %s ! It root hash is '%s'.", args[0], time.Since(timeStart), fileMerkleTree.Hash)
 	},
 }
