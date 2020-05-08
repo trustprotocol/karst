@@ -59,12 +59,12 @@ var putCmd = &cobra.Command{
 			putProcesser.dealError(err)
 			return
 		} else {
-			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
+			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTree)
 			log.Debugf("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
 		}
 
 		// Log results
-		log.Infof("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+		log.Infof("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
 	},
 }
 
@@ -194,7 +194,7 @@ func (putProcesser *PutProcesser) split() error {
 
 func (putProcesser *PutProcesser) sealFile() error {
 	// New TEE
-	tee, err := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
+	tee, err := tee.NewTee(putProcesser.Config.TeeBaseUrl, putProcesser.Config.Backup)
 	if err != nil {
 		return fmt.Errorf("Fatal error in creating tee structure: %s", err)
 	}

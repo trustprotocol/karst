@@ -47,6 +47,7 @@ func ReadConfig() *Configuration {
 	Config.FilePartSize = 1 * (1 << 20) // 1 MB
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
 	Config.LogLevel = viper.GetString("log_level")
+	Config.Backup = viper.GetString("backup")
 
 	// Use configuration
 	if Config.LogLevel == "debug" {
