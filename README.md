@@ -1,13 +1,19 @@
 # Karst
 A distributed file system base on crust
 
+## Compiler Environment
+```shell
+go version >= go1.13.4
+```
+
 ## Build & Run
 ```shell
 go build
 ```
 
 ```shell
-./karst -h
+./karst init
+./karst put <file-path>
 ```
 
 ## Contribution

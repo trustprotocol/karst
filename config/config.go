@@ -16,11 +16,12 @@ type Configuration struct {
 	FilePartSize   uint64
 	TeeBaseUrl     string
 	LogLevel       string
+	Backup         string
 }
 
-var Config Configuration
+var Config *Configuration
 
-func ReadConfig() {
+func ReadConfig() *Configuration {
 	// Get base karst paths
 	karstPath, configFilePath, filesPath, dbPath := util.GetKarstPaths()
 
@@ -38,7 +39,7 @@ func ReadConfig() {
 	}
 
 	// Set configuration
-	Config = Configuration{}
+	Config = &Configuration{}
 	Config.KarstPath = karstPath
 	Config.ConfigFilePath = configFilePath
 	Config.FilesPath = filesPath
@@ -46,15 +47,21 @@ func ReadConfig() {
 	Config.FilePartSize = 1 * (1 << 20) // 1 MB
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
 	Config.LogLevel = viper.GetString("log_level")
+	Config.Backup = viper.GetString("backup")
+
+	// Use configuration
 	if Config.LogLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	return Config
 }
 
 func WriteDefaultConfig(configFilePath string) {
 	viper.SetConfigType("json")
-	viper.Set("tee_base_url", "http://0.0.0.0:12222/api/v0")
+	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
+	viper.Set("backup", "")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		log.Errorf("Fatal error in creating karst configuration file: %s\n", err)
