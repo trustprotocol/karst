@@ -59,26 +59,33 @@ var putCmd = &cobra.Command{
 			putProcesser.dealError(err)
 			return
 		} else {
-			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTree)
+			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
 			log.Debugf("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
 		}
 
 		// Log results
-		log.Infof("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
+		log.Infof("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
 	},
 }
 
+type PutInfo struct {
+	InputfilePath   string
+	Md5             string
+	MekleTree       *merkletree.MerkleTreeNode
+	MekleTreeSealed *merkletree.MerkleTreeNode
+	StoredPath      string
+}
+
 type PutProcesser struct {
-	InputfilePath           string
-	Config                  *Configuration
-	Db                      *leveldb.DB
-	Err                     error
-	FileStorePathInMd5      string
-	Md5                     string
-	FileStorePathInHash     string
-	MekleTree               *merkletree.MerkleTreeNode
-	FileStorePathSealedHash string
-	MekleTreeSealed         *merkletree.MerkleTreeNode
+	InputfilePath             string
+	Config                    *Configuration
+	Db                        *leveldb.DB
+	FileStorePathInMd5        string
+	Md5                       string
+	FileStorePathInHash       string
+	MekleTree                 *merkletree.MerkleTreeNode
+	FileStorePathInSealedHash string
+	MekleTreeSealed           *merkletree.MerkleTreeNode
 }
 
 func newPutProcesser(inputfilePath string, config *Configuration, db *leveldb.DB) *PutProcesser {
@@ -157,7 +164,7 @@ func (putProcesser *PutProcesser) split() error {
 		partHashs = append(partHashs, partHash)
 		partSizes = append(partSizes, uint64(partSize))
 		partHashString := hex.EncodeToString(partHash[:])
-		partFileName := filepath.FromSlash(putProcesser.FileStorePathInMd5 + "/" + strconv.FormatUint(i, 10) + "-" + partHashString)
+		partFileName := filepath.FromSlash(putProcesser.FileStorePathInMd5 + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
 
 		// Write to disk
 		partFile, err := os.Create(partFileName)
@@ -200,9 +207,27 @@ func (putProcesser *PutProcesser) sealFile() error {
 	}
 
 	// Send merkle tree to TEE for sealing
-	_, err = tee.Seal(putProcesser.FileStorePathInHash, putProcesser.MekleTree)
+	mekleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(putProcesser.FileStorePathInHash, putProcesser.MekleTree)
 	if err != nil {
 		return fmt.Errorf("Fatal error in sealing file '%s' : %s", putProcesser.MekleTree.Hash, err)
+	} else {
+		putProcesser.FileStorePathInSealedHash = fileStorePathInSealedHash
+	}
+
+	// Store sealed merkle tree info to db
+	putInfo := &PutInfo{
+		InputfilePath:   putProcesser.InputfilePath,
+		Md5:             putProcesser.Md5,
+		MekleTree:       putProcesser.MekleTree,
+		MekleTreeSealed: mekleTreeSealed,
+		StoredPath:      putProcesser.FileStorePathInSealedHash,
+	}
+
+	putInfoBytes, _ := json.Marshal(putInfo)
+	if err = putProcesser.Db.Put([]byte(mekleTreeSealed.Hash), putInfoBytes, nil); err != nil {
+		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
+	} else {
+		putProcesser.MekleTreeSealed = mekleTreeSealed
 	}
 
 	return nil
@@ -217,8 +242,8 @@ func (putProcesser *PutProcesser) dealError(err error) {
 		os.RemoveAll(putProcesser.FileStorePathInHash)
 	}
 
-	if putProcesser.FileStorePathSealedHash != "" {
-		os.RemoveAll(putProcesser.FileStorePathSealedHash)
+	if putProcesser.FileStorePathInSealedHash != "" {
+		os.RemoveAll(putProcesser.FileStorePathInSealedHash)
 	}
 
 	if putProcesser.Md5 != "" {

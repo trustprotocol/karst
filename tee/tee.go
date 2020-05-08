@@ -3,6 +3,7 @@ package tee
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"karst/merkletree"
 
 	"github.com/gorilla/websocket"
@@ -26,13 +27,13 @@ func NewTee(baseUrl string, backup string) (*Tee, error) {
 }
 
 // TODO: change to wss
-func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, error) {
+func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := "ws://" + tee.BaseUrl + "/storage/seal"
 	log.Infof("connecting to %s", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer c.Close()
 
@@ -45,22 +46,37 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 
 	reqBodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	} else {
 		log.Debugf("Request body for sealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
+	// Deal result
 	_, message, err := c.ReadMessage()
 	if err != nil {
-		return nil, err
-	} else {
-		log.Debugf("recv: %s", message)
+		return nil, "", err
+	}
+	log.Debugf("recv: %s", message)
+
+	var resultMap map[string]interface{}
+	err = json.Unmarshal([]byte(message), &resultMap)
+	if err != nil {
+		return nil, "", fmt.Errorf("Unmarshal seal result failed: %s", err)
 	}
 
-	return nil, nil
+	if resultMap["status"].(int) != 200 {
+		return nil, "", fmt.Errorf("Seal failed, error code is %d", resultMap["status"])
+	}
+
+	var merkleTreeSealed *merkletree.MerkleTreeNode
+	if err = json.Unmarshal([]byte(resultMap["body"].(string)), merkleTreeSealed); err != nil {
+		return nil, "", fmt.Errorf("Unmarshal sealed merkle tree  failed: %s", err)
+	}
+
+	return merkleTreeSealed, resultMap["path"].(string), nil
 }
