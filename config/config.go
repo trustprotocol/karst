@@ -19,9 +19,9 @@ type Configuration struct {
 	Backup         string
 }
 
-var Config Configuration
+var Config *Configuration
 
-func ReadConfig() {
+func ReadConfig() *Configuration {
 	// Get base karst paths
 	karstPath, configFilePath, filesPath, dbPath := util.GetKarstPaths()
 
@@ -39,7 +39,7 @@ func ReadConfig() {
 	}
 
 	// Set configuration
-	Config = Configuration{}
+	Config = &Configuration{}
 	Config.KarstPath = karstPath
 	Config.ConfigFilePath = configFilePath
 	Config.FilesPath = filesPath
@@ -52,6 +52,8 @@ func ReadConfig() {
 	if Config.LogLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	return Config
 }
 
 func WriteDefaultConfig(configFilePath string) {
