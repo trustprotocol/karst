@@ -188,13 +188,7 @@ func (putProcesser *PutProcesser) split() error {
 	} else {
 		putProcesser.FileStorePathInHash = fileStorePathInHash
 	}
-
-	// Save split file information into db
-	if err = putProcesser.Db.Put([]byte(fileMerkleTree.Hash), []byte(putProcesser.Md5), nil); err != nil {
-		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
-	} else {
-		putProcesser.MekleTree = fileMerkleTree
-	}
+	putProcesser.MekleTree = fileMerkleTree
 
 	return nil
 }
@@ -215,19 +209,23 @@ func (putProcesser *PutProcesser) sealFile() error {
 	}
 
 	// Store sealed merkle tree info to db
-	putInfo := &PutInfo{
-		InputfilePath:   putProcesser.InputfilePath,
-		Md5:             putProcesser.Md5,
-		MekleTree:       putProcesser.MekleTree,
-		MekleTreeSealed: mekleTreeSealed,
-		StoredPath:      putProcesser.FileStorePathInSealedHash,
-	}
-
-	putInfoBytes, _ := json.Marshal(putInfo)
-	if err = putProcesser.Db.Put([]byte(mekleTreeSealed.Hash), putInfoBytes, nil); err != nil {
+	if err = putProcesser.Db.Put([]byte(putProcesser.MekleTree.Hash), []byte(mekleTreeSealed.Hash), nil); err != nil {
 		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
 	} else {
-		putProcesser.MekleTreeSealed = mekleTreeSealed
+		putInfo := &PutInfo{
+			InputfilePath:   putProcesser.InputfilePath,
+			Md5:             putProcesser.Md5,
+			MekleTree:       putProcesser.MekleTree,
+			MekleTreeSealed: mekleTreeSealed,
+			StoredPath:      putProcesser.FileStorePathInSealedHash,
+		}
+
+		putInfoBytes, _ := json.Marshal(putInfo)
+		if err = putProcesser.Db.Put([]byte(mekleTreeSealed.Hash), putInfoBytes, nil); err != nil {
+			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
+		} else {
+			putProcesser.MekleTreeSealed = mekleTreeSealed
+		}
 	}
 
 	return nil
@@ -252,13 +250,11 @@ func (putProcesser *PutProcesser) dealError(err error) {
 		}
 	}
 
-	if putProcesser.MekleTree != nil {
+	if putProcesser.MekleTreeSealed != nil {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTree.Hash), nil); err != nil {
 			log.Error(err)
 		}
-	}
 
-	if putProcesser.MekleTreeSealed != nil {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTreeSealed.Hash), nil); err != nil {
 			log.Error(err)
 		}

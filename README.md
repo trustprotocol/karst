@@ -12,7 +12,8 @@ go build
 ```
 
 ```shell
-./karst -h
+./karst init
+./karst put <file-path>
 ```
 
 ## Contribution
