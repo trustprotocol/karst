@@ -1,47 +1,84 @@
 package ws
 
 import (
-	"flag"
+	"encoding/json"
 	"net/http"
 
+	. "karst/config"
 	"karst/logger"
 
 	"github.com/gorilla/websocket"
 )
 
+type backupMessage struct {
+	Backup string
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-} // use default options
+}
 
-func echo(w http.ResponseWriter, r *http.Request) {
+func getNodeData(w http.ResponseWriter, r *http.Request) {
+	// Upgrade http to ws
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.Info("Upgrade:", err)
+		logger.Error("Upgrade: %s", err)
 		return
 	}
 	defer c.Close()
-	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			logger.Info("Read:", err)
-			break
-		}
-		logger.Info("Recv: %s", message)
-		err = c.WriteMessage(mt, message)
-		if err != nil {
-			logger.Info("Write:", err)
-			break
-		}
+
+	// Check backup
+	mt, message, err := c.ReadMessage()
+	if err != nil {
+		logger.Error("Read err: %s", err)
+		return
 	}
+
+	if mt != websocket.TextMessage {
+		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+		if err != nil {
+			logger.Error("Write err: %s", err)
+		}
+		return
+	}
+
+	var backupMes backupMessage
+	err = json.Unmarshal([]byte(message), &backupMes)
+	if err != nil {
+		logger.Error("Unmarshal failed: %s", err)
+		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+		if err != nil {
+			logger.Error("Write err: %s", err)
+		}
+		return
+	}
+
+	if backupMes.Backup != Config.Backup {
+		logger.Error("Need right backup")
+		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+		if err != nil {
+			logger.Error("Write err: %s", err)
+		}
+		return
+	}
+
+	// Send right backup message
+	err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
+	if err != nil {
+		logger.Error("Write err: %s", err)
+	}
+
+	logger.Debug("Right backup, waiting for node data request...")
 }
 
+// TODO: wss is needed
 func StartWsServer() error {
-	var addr = flag.String("addr", "0.0.0.0:17000", "http service address")
-	http.HandleFunc("/echo", echo)
+	http.HandleFunc("/api/v0/node/data", getNodeData)
 
-	if err := http.ListenAndServe(*addr, nil); err != nil {
+	logger.Info("Start ws at '%s'", Config.BaseUrl)
+	if err := http.ListenAndServe(Config.BaseUrl, nil); err != nil {
 		return err
 	}
 

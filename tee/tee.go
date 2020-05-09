@@ -10,6 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type sealedMessage struct {
+	Status int
+	Body   string
+	Path   string
+}
+
 type Tee struct {
 	BaseUrl string
 	Backup  string
@@ -61,22 +67,22 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	if err != nil {
 		return nil, "", err
 	}
-	logger.Debug("recv: %s", message)
+	logger.Debug("Recv: %s", message)
 
-	var resultMap map[string]interface{}
-	err = json.Unmarshal([]byte(message), &resultMap)
+	var sealedMes sealedMessage
+	err = json.Unmarshal([]byte(message), &sealedMes)
 	if err != nil {
 		return nil, "", fmt.Errorf("Unmarshal seal result failed: %s", err)
 	}
 
-	if resultMap["status"].(float64) != 200 {
-		return nil, "", fmt.Errorf("Seal failed, error code is %d", resultMap["status"])
+	if sealedMes.Status != 200 {
+		return nil, "", fmt.Errorf("Seal failed, error code is %d", sealedMes.Status)
 	}
 
 	var merkleTreeSealed merkletree.MerkleTreeNode
-	if err = json.Unmarshal([]byte(resultMap["body"].(string)), &merkleTreeSealed); err != nil {
-		return nil, "", fmt.Errorf("Unmarshal sealed merkle tree  failed: %s", err)
+	if err = json.Unmarshal([]byte(sealedMes.Body), &merkleTreeSealed); err != nil {
+		return nil, "", fmt.Errorf("Unmarshal sealed merkle tree failed: %s", err)
 	}
 
-	return &merkleTreeSealed, resultMap["path"].(string), nil
+	return &merkleTreeSealed, sealedMes.Path, nil
 }

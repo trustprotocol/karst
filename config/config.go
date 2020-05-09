@@ -27,7 +27,7 @@ func ReadConfig() *Configuration {
 
 	// Check directory
 	if !util.IsDirOrFileExist(karstPath) || !util.IsDirOrFileExist(configFilePath) {
-		logger.Info("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPath)
+		logger.Warn("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPath)
 		panic(nil)
 	}
 
@@ -45,7 +45,7 @@ func ReadConfig() *Configuration {
 	Config.FilesPath = filesPath
 	Config.DbPath = dbPath
 	Config.FilePartSize = 1 * (1 << 20) // 1 MB
-	Config.BaseUrl = viper.GetString("tee_base_url")
+	Config.BaseUrl = viper.GetString("base_url")
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
 	Config.LogLevel = viper.GetString("log_level")
 	Config.Backup = viper.GetString("backup")
@@ -60,7 +60,7 @@ func ReadConfig() *Configuration {
 
 func WriteDefaultConfig(configFilePath string) {
 	viper.SetConfigType("json")
-	viper.Set("base_url", "0.0.0.0:17000/api/v0")
+	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
 	viper.Set("backup", "")
