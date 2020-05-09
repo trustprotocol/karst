@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	. "karst/config"
+	"karst/logger"
 	"karst/merkletree"
 	"karst/tee"
 	"math"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -39,7 +39,7 @@ var putCmd = &cobra.Command{
 
 		db, err := leveldb.OpenFile(config.DbPath, nil)
 		if err != nil {
-			log.Errorf("Fatal error in opening db: %s\n", err)
+			logger.Error("Fatal error in opening db: %s\n", err)
 			panic(err)
 		}
 		defer db.Close()
@@ -51,7 +51,7 @@ var putCmd = &cobra.Command{
 			return
 		} else {
 			merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
-			log.Debugf("Splited merkleTree is %s", string(merkleTreeBytes))
+			logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 		}
 
 		// Seal file
@@ -60,11 +60,11 @@ var putCmd = &cobra.Command{
 			return
 		} else {
 			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
-			log.Debugf("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
+			logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
 		}
 
 		// Log results
-		log.Infof("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+		logger.Info("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
 	},
 }
 
@@ -145,7 +145,7 @@ func (putProcesser *PutProcesser) split() error {
 	partHashs := make([][32]byte, 0)
 	partSizes := make([]uint64, 0)
 
-	log.Infof("Splitting '%s' to %d parts.", putProcesser.InputfilePath, totalPartsNum)
+	logger.Info("Splitting '%s' to %d parts.", putProcesser.InputfilePath, totalPartsNum)
 	bar := pb.StartNew(int(totalPartsNum))
 	for i := uint64(0); i < totalPartsNum; i++ {
 		// Bar
@@ -246,19 +246,19 @@ func (putProcesser *PutProcesser) dealError(err error) {
 
 	if putProcesser.Md5 != "" {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.Md5), nil); err != nil {
-			log.Error(err)
+			logger.Error("%s", err)
 		}
 	}
 
 	if putProcesser.MekleTreeSealed != nil {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTree.Hash), nil); err != nil {
-			log.Error(err)
+			logger.Error("%s", err)
 		}
 
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTreeSealed.Hash), nil); err != nil {
-			log.Error(err)
+			logger.Error("%s", err)
 		}
 	}
 
-	log.Error(err)
+	logger.Error("%s", err)
 }

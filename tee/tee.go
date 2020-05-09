@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"karst/logger"
 	"karst/merkletree"
 
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 )
 
 type Tee struct {
@@ -30,7 +30,7 @@ func NewTee(baseUrl string, backup string) (*Tee, error) {
 func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := "ws://" + tee.BaseUrl + "/storage/seal"
-	log.Infof("connecting to %s", url)
+	logger.Info("connecting to %s", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -48,7 +48,7 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	if err != nil {
 		return nil, "", err
 	} else {
-		log.Debugf("Request body for sealing: %s", string(reqBodyBytes))
+		logger.Debug("Request body for sealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -61,7 +61,7 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	if err != nil {
 		return nil, "", err
 	}
-	log.Debugf("recv: %s", message)
+	logger.Debug("recv: %s", message)
 
 	var resultMap map[string]interface{}
 	err = json.Unmarshal([]byte(message), &resultMap)

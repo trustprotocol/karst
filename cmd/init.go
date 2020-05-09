@@ -2,10 +2,9 @@ package cmd
 
 import (
 	. "karst/config"
+	"karst/logger"
 	"karst/util"
 	"os"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -24,32 +23,25 @@ var initCmd = &cobra.Command{
 
 		// Create directory and default config
 		if util.IsDirOrFileExist(karstPath) && util.IsDirOrFileExist(configFilePath) {
-			log.Infof("Karst has been installed in this directory: %s", karstPath)
+			logger.Info("Karst has been installed in this directory: %s", karstPath)
 		} else {
 			if err := os.MkdirAll(karstPath, os.ModePerm); err != nil {
-				log.Errorf("Fatal error in creating karst directory: %s", err)
+				logger.Error("Fatal error in creating karst directory: %s", err)
 				panic(err)
 			}
 
 			if err := os.MkdirAll(filesPath, os.ModePerm); err != nil {
-				log.Errorf("Fatal error in creating karst files directory: %s", err)
+				logger.Error("Fatal error in creating karst files directory: %s", err)
 				panic(err)
 			}
 
 			if err := os.MkdirAll(dbPath, os.ModePerm); err != nil {
-				log.Errorf("Fatal error in creating karst db directory: %s", err)
+				logger.Error("Fatal error in creating karst db directory: %s", err)
 				panic(err)
 			}
 
 			WriteDefaultConfig(configFilePath)
-			log.Infof("Initialize karst in '%s' successfully!", karstPath)
+			logger.Info("Initialize karst in '%s' successfully!", karstPath)
 		}
 	},
-}
-
-func init() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
-	log.SetLevel(log.InfoLevel)
 }

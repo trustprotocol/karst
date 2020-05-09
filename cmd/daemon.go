@@ -2,8 +2,9 @@ package cmd
 
 import (
 	. "karst/config"
+	"karst/logger"
+	"karst/ws"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +18,9 @@ var daemonCmd = &cobra.Command{
 	Long:  "Start karst service, it will use '$HOME/.karst' to run krast by default, set KARST_PATH to change execution space",
 	Run: func(cmd *cobra.Command, args []string) {
 		ReadConfig()
-		log.Infof("Karst daemon successfully!")
+		if err := ws.StartWsServer(); err != nil {
+			logger.Error("%s", err)
+		}
+		logger.Info("Karst daemon successfully!")
 	},
 }
