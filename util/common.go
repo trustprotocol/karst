@@ -1,9 +1,13 @@
 package util
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
+	"time"
 )
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type KarstPaths struct {
 	KarstPath      string
@@ -34,4 +38,13 @@ func IsDirOrFileExist(path string) bool {
 		return os.IsExist(err)
 	}
 	return true
+}
+
+func RandString(n int) string {
+	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
