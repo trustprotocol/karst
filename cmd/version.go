@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
+	"karst/logger"
+
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,6 @@ var versionCmd = &cobra.Command{
 	Short: "Karst version",
 	Long:  `Karst version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Infof("Karst 0.1.0")
+		logger.Info("Karst 0.1.0")
 	},
 }

@@ -7,7 +7,6 @@ require (
 	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
 	github.com/gorilla/websocket v1.4.0
 	github.com/minio/sha256-simd v0.1.1 // indirect
-	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
