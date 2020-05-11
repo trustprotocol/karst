@@ -24,47 +24,57 @@ import (
 )
 
 func init() {
+	putCmd.Flags().String("chain_account", "", "file will be saved in the karst node with this 'chain_account' by storage market")
 	rootCmd.AddCommand(putCmd)
 }
 
 var putCmd = &cobra.Command{
-	Use:   "put [file-path]",
+	Use:   "put [file-path] [flags]",
 	Short: "Put file into karst",
 	Long:  "A file storage interface provided by karst",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Base class
 		timeStart := time.Now()
-		config := ReadConfig()
+		ReadConfig()
 
-		db, err := leveldb.OpenFile(config.DbPath, nil)
+		db, err := leveldb.OpenFile(Config.KarstPaths.DbPath, nil)
 		if err != nil {
 			logger.Error("Fatal error in opening db: %s\n", err)
 			panic(err)
 		}
 		defer db.Close()
-		putProcesser := newPutProcesser(args[0], config, db)
+		putProcesser := newPutProcesser(args[0], db)
 
-		// Split file
-		if err := putProcesser.split(); err != nil {
-			putProcesser.dealError(err)
-			return
+		// Remote mode or local mode
+		chainAccount, _ := cmd.Flags().GetString("chain_account")
+		if chainAccount != "" {
+			logger.Info("Remote mode, chain account: %s", chainAccount)
 		} else {
-			merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
-			logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
-		}
+			logger.Info("Local mode")
 
-		// Seal file
-		if err := putProcesser.sealFile(); err != nil {
-			putProcesser.dealError(err)
-			return
-		} else {
-			merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
-			logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
-		}
+			// Split file
+			if err := putProcesser.split(); err != nil {
+				putProcesser.dealError(err)
+				return
+			} else {
+				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
+				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
+			}
 
-		// Log results
-		logger.Info("Put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+			// TODO: local put use reserve seal interface of TEE
+			// Seal file
+			if err := putProcesser.sealFile(); err != nil {
+				putProcesser.dealError(err)
+				return
+			} else {
+				merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
+				logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
+			}
+
+			// Log results
+			logger.Info("Locally put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+		}
 	},
 }
 
@@ -78,7 +88,6 @@ type PutInfo struct {
 
 type PutProcesser struct {
 	InputfilePath             string
-	Config                    *Configuration
 	Db                        *leveldb.DB
 	FileStorePathInMd5        string
 	Md5                       string
@@ -88,10 +97,9 @@ type PutProcesser struct {
 	MekleTreeSealed           *merkletree.MerkleTreeNode
 }
 
-func newPutProcesser(inputfilePath string, config *Configuration, db *leveldb.DB) *PutProcesser {
+func newPutProcesser(inputfilePath string, db *leveldb.DB) *PutProcesser {
 	return &PutProcesser{
 		InputfilePath: inputfilePath,
-		Config:        config,
 		Db:            db,
 	}
 }
@@ -111,12 +119,13 @@ func (putProcesser *PutProcesser) split() error {
 	}
 	md5hashString := hex.EncodeToString(md5hash.Sum(nil))
 
+	// TODO: Support the addition of the same files locally and remotely
 	if ok, _ := putProcesser.Db.Has([]byte(md5hashString), nil); ok {
 		return fmt.Errorf("This '%s' has already been stored, file md5 is: %s", putProcesser.InputfilePath, md5hashString)
 	}
 
 	// Create md5 file directory
-	fileStorePathInMd5 := filepath.FromSlash(putProcesser.Config.FilesPath + "/" + md5hashString)
+	fileStorePathInMd5 := filepath.FromSlash(Config.KarstPaths.FilesPath + "/" + md5hashString)
 	if err := os.MkdirAll(fileStorePathInMd5, os.ModePerm); err != nil {
 		return fmt.Errorf("Fatal error in creating file store directory: %s", err)
 	} else {
@@ -181,21 +190,26 @@ func (putProcesser *PutProcesser) split() error {
 
 	// Rename folder
 	fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
-	fileStorePathInHash := filepath.FromSlash(Config.FilesPath + "/" + fileMerkleTree.Hash)
+	fileStorePathInHash := filepath.FromSlash(Config.KarstPaths.FilesPath + "/" + fileMerkleTree.Hash)
 
 	if err = os.Rename(putProcesser.FileStorePathInMd5, fileStorePathInHash); err != nil {
 		return fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", putProcesser.FileStorePathInMd5, fileStorePathInHash, err)
 	} else {
 		putProcesser.FileStorePathInHash = fileStorePathInHash
 	}
-	putProcesser.MekleTree = fileMerkleTree
+
+	if err = putProcesser.Db.Put([]byte(fileMerkleTree.Hash), nil, nil); err != nil {
+		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
+	} else {
+		putProcesser.MekleTree = fileMerkleTree
+	}
 
 	return nil
 }
 
 func (putProcesser *PutProcesser) sealFile() error {
 	// New TEE
-	tee, err := tee.NewTee(putProcesser.Config.TeeBaseUrl, putProcesser.Config.Backup)
+	tee, err := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
 	if err != nil {
 		return fmt.Errorf("Fatal error in creating tee structure: %s", err)
 	}
@@ -250,11 +264,13 @@ func (putProcesser *PutProcesser) dealError(err error) {
 		}
 	}
 
-	if putProcesser.MekleTreeSealed != nil {
+	if putProcesser.MekleTree != nil {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTree.Hash), nil); err != nil {
 			logger.Error("%s", err)
 		}
+	}
 
+	if putProcesser.MekleTreeSealed != nil {
 		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTreeSealed.Hash), nil); err != nil {
 			logger.Error("%s", err)
 		}

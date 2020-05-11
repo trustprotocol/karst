@@ -109,7 +109,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nodeFilePath := filepath.FromSlash(Config.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
+		nodeFilePath := filepath.FromSlash(Config.KarstPaths.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
 		logger.Debug("Try to get '%s' file", nodeFilePath)
 
 		fileBytes, err := ioutil.ReadFile(nodeFilePath)

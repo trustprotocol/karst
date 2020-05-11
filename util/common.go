@@ -5,17 +5,27 @@ import (
 	"path/filepath"
 )
 
-func GetKarstPaths() (string, string, string, string) {
-	karstPath := filepath.FromSlash(os.Getenv("HOME") + "/.karst")
+type KarstPaths struct {
+	KarstPath      string
+	ConfigFilePath string
+	FilesPath      string
+	TempFilesPath  string
+	DbPath         string
+}
+
+func GetKarstPaths() *KarstPaths {
+	karstPaths := &KarstPaths{}
+	karstPaths.KarstPath = filepath.FromSlash(os.Getenv("HOME") + "/.karst")
 	if karstTmpPath := os.Getenv("KARST_PATH"); karstTmpPath != "" {
-		karstPath = karstTmpPath
+		karstPaths.KarstPath = karstTmpPath
 	}
 
-	configFilePath := filepath.FromSlash(karstPath + "/config.json")
-	filesPath := filepath.FromSlash(karstPath + "/files")
-	dbPath := filepath.FromSlash(karstPath + "/db")
+	karstPaths.ConfigFilePath = filepath.FromSlash(karstPaths.KarstPath + "/config.json")
+	karstPaths.FilesPath = filepath.FromSlash(karstPaths.KarstPath + "/files")
+	karstPaths.TempFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/temp_files")
+	karstPaths.DbPath = filepath.FromSlash(karstPaths.KarstPath + "/db")
 
-	return karstPath, configFilePath, filesPath, dbPath
+	return karstPaths
 }
 
 func IsDirOrFileExist(path string) bool {
