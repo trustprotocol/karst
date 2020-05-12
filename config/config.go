@@ -14,6 +14,7 @@ type Configuration struct {
 	TeeBaseUrl   string
 	LogLevel     string
 	Backup       string
+	ChainAccount string
 }
 
 var Config *Configuration
@@ -43,6 +44,7 @@ func ReadConfig() *Configuration {
 	Config.TeeBaseUrl = viper.GetString("tee_base_url")
 	Config.LogLevel = viper.GetString("log_level")
 	Config.Backup = viper.GetString("backup")
+	Config.ChainAccount = viper.GetString("chian_account")
 
 	// Use configuration
 	if Config.LogLevel == "debug" {
@@ -58,6 +60,7 @@ func WriteDefaultConfig(configFilePath string) {
 	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
 	viper.Set("backup", "")
+	viper.Set("chian_account", "")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		logger.Error("Fatal error in creating karst configuration file: %s\n", err)

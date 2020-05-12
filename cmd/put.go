@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -60,6 +61,11 @@ var putCmd = &cobra.Command{
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 			}
 
+			if err := putProcesser.sendTo(chainAccount); err != nil {
+				putProcesser.dealErrorForRemote(err)
+				return
+			}
+
 			logger.Info("Remotely put '%s' successfully in %s !", args[0], time.Since(timeStart))
 		} else {
 			logger.Info("Local mode")
@@ -73,7 +79,7 @@ var putCmd = &cobra.Command{
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 			}
 
-			// TODO: local put use reserve seal interface of TEE
+			// TODO: Local put use reserve seal interface of TEE
 			// Seal file
 			if err := putProcesser.sealFile(); err != nil {
 				putProcesser.dealErrorForLocal(err)
@@ -95,6 +101,12 @@ type PutInfo struct {
 	MekleTree       *merkletree.MerkleTreeNode
 	MekleTreeSealed *merkletree.MerkleTreeNode
 	StoredPath      string
+}
+
+type StorePermissionMessage struct {
+	ChainAccount   string
+	StoreOrderHash string
+	MekleTree      *merkletree.MerkleTreeNode
 }
 
 type PutProcesser struct {
@@ -239,6 +251,39 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 	}
 
 	return nil
+}
+
+func (putProcesser *PutProcesser) sendTo(chainAccount string) error {
+	// TODO: Get address from chain
+	karstPutAddress := "ws://127.0.0.1:17000/api/v0/put"
+	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
+	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
+
+	// Connect to other karst node
+	logger.Info("Connecting to %s", karstPutAddress)
+	c, _, err := websocket.DefaultDialer.Dial(karstPutAddress, nil)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	storePermissionMsg := StorePermissionMessage{
+		ChainAccount:   Config.ChainAccount,
+		StoreOrderHash: storeOrderHash,
+		MekleTree:      putProcesser.MekleTree,
+	}
+
+	storePermissionMsgBytes, err := json.Marshal(storePermissionMsg)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("Store permission message is: %s", string(storePermissionMsgBytes))
+	if err = c.WriteMessage(websocket.TextMessage, storePermissionMsgBytes); err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (putProcesser *PutProcesser) sealFile() error {
