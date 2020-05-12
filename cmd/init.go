@@ -35,6 +35,11 @@ var initCmd = &cobra.Command{
 				panic(err)
 			}
 
+			if err := os.MkdirAll(karstPaths.OrderFilesPath, os.ModePerm); err != nil {
+				logger.Error("Fatal error in creating karst order files directory: %s", err)
+				panic(err)
+			}
+
 			if err := os.MkdirAll(karstPaths.TempFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst temp files directory: %s", err)
 				panic(err)

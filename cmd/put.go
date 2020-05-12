@@ -11,6 +11,7 @@ import (
 	. "karst/config"
 	"karst/logger"
 	"karst/merkletree"
+	"karst/model"
 	"karst/tee"
 	"karst/util"
 	"math"
@@ -103,12 +104,6 @@ type PutInfo struct {
 	StoredPath      string
 }
 
-type StorePermissionMessage struct {
-	ChainAccount   string
-	StoreOrderHash string
-	MekleTree      *merkletree.MerkleTreeNode
-}
-
 type PutProcesser struct {
 	InputfilePath             string
 	Db                        *leveldb.DB
@@ -188,7 +183,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 
 	// Split file
 	totalPartsNum := uint64(math.Ceil(float64(fileInfo.Size()) / float64(Config.FilePartSize)))
-	partHashs := make([][32]byte, 0)
+	partHashs := make([][]byte, 0)
 	partSizes := make([]uint64, 0)
 
 	logger.Info("Splitting '%s' to %d parts.", putProcesser.InputfilePath, totalPartsNum)
@@ -207,7 +202,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 
 		// Get part information
 		partHash := sha256.Sum256(partBuffer)
-		partHashs = append(partHashs, partHash)
+		partHashs = append(partHashs, partHash[:])
 		partSizes = append(partSizes, uint64(partSize))
 		partHashString := hex.EncodeToString(partHash[:])
 		partFileName := filepath.FromSlash(putProcesser.FileStorePathInBegin + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
@@ -267,7 +262,7 @@ func (putProcesser *PutProcesser) sendTo(chainAccount string) error {
 	}
 	defer c.Close()
 
-	storePermissionMsg := StorePermissionMessage{
+	storePermissionMsg := model.StorePermissionMessage{
 		ChainAccount:   Config.ChainAccount,
 		StoreOrderHash: storeOrderHash,
 		MekleTree:      putProcesser.MekleTree,
@@ -282,6 +277,35 @@ func (putProcesser *PutProcesser) sendTo(chainAccount string) error {
 	if err = c.WriteMessage(websocket.TextMessage, storePermissionMsgBytes); err != nil {
 		return err
 	}
+
+	_, message, err := c.ReadMessage()
+	if err != nil {
+		return err
+	}
+	logger.Debug("Store permission request return: %s", message)
+
+	// Send nodes of file
+	logger.Info("Send '%s' file to '%s' karst node, the number of nodes of this file is %d", putProcesser.MekleTree.Hash, chainAccount, putProcesser.MekleTree.LinksNum)
+	for index := range putProcesser.MekleTree.Links {
+		nodeFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MekleTree.Links[index].Hash)
+		logger.Debug("Try to get '%s' file", nodeFilePath)
+
+		fileBytes, err := ioutil.ReadFile(nodeFilePath)
+		if err != nil {
+			return fmt.Errorf("Read file '%s' filed: %s", nodeFilePath, err)
+		}
+
+		err = c.WriteMessage(websocket.BinaryMessage, fileBytes)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, message, err = c.ReadMessage()
+	if err != nil {
+		return err
+	}
+	logger.Debug("Store request return: %s", message)
 
 	return err
 }
