@@ -239,6 +239,7 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	if err != nil {
 		return err
 	}
+	os.RemoveAll(putProcesser.FileStorePathInHash)
 	logger.Debug("Store request return: %s", message)
 
 	return err

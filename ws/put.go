@@ -19,6 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// TODO: ws message management
 func put(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
 	c, err := upgrader.Upgrade(w, r, nil)
