@@ -1,21 +1,35 @@
 package util
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-func GetKarstPaths() (string, string, string, string) {
-	karstPath := filepath.FromSlash(os.Getenv("HOME") + "/.karst")
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+type KarstPaths struct {
+	KarstPath      string
+	ConfigFilePath string
+	FilesPath      string
+	TempFilesPath  string
+	DbPath         string
+}
+
+func GetKarstPaths() *KarstPaths {
+	karstPaths := &KarstPaths{}
+	karstPaths.KarstPath = filepath.FromSlash(os.Getenv("HOME") + "/.karst")
 	if karstTmpPath := os.Getenv("KARST_PATH"); karstTmpPath != "" {
-		karstPath = karstTmpPath
+		karstPaths.KarstPath = karstTmpPath
 	}
 
-	configFilePath := filepath.FromSlash(karstPath + "/config.json")
-	filesPath := filepath.FromSlash(karstPath + "/files")
-	dbPath := filepath.FromSlash(karstPath + "/db")
+	karstPaths.ConfigFilePath = filepath.FromSlash(karstPaths.KarstPath + "/config.json")
+	karstPaths.FilesPath = filepath.FromSlash(karstPaths.KarstPath + "/files")
+	karstPaths.TempFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/temp_files")
+	karstPaths.DbPath = filepath.FromSlash(karstPaths.KarstPath + "/db")
 
-	return karstPath, configFilePath, filesPath, dbPath
+	return karstPaths
 }
 
 func IsDirOrFileExist(path string) bool {
@@ -24,4 +38,13 @@ func IsDirOrFileExist(path string) bool {
 		return os.IsExist(err)
 	}
 	return true
+}
+
+func RandString(n int) string {
+	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }

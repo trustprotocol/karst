@@ -12,10 +12,10 @@ type MerkleTreeNode struct {
 	Links    []MerkleTreeNode `json:"links"`
 }
 
-func NewMerkleTreeNode(hash [32]byte, size uint64) *MerkleTreeNode {
+func NewMerkleTreeNode(hash []byte, size uint64) *MerkleTreeNode {
 
 	return &MerkleTreeNode{
-		Hash:     hex.EncodeToString(hash[:]),
+		Hash:     hex.EncodeToString(hash),
 		Size:     size,
 		LinksNum: 0,
 		Links:    make([]MerkleTreeNode, 0),
@@ -23,7 +23,7 @@ func NewMerkleTreeNode(hash [32]byte, size uint64) *MerkleTreeNode {
 }
 
 // TODO: Multiple depth tree, currently only supports single-layer tree
-func CreateMerkleTree(hashs [][32]byte, sizes []uint64) *MerkleTreeNode {
+func CreateMerkleTree(hashs [][]byte, sizes []uint64) *MerkleTreeNode {
 	allHashs := make([]byte, 0)
 	var totalSize uint64 = 0
 	var linksNum uint64 = 0
@@ -33,14 +33,41 @@ func CreateMerkleTree(hashs [][32]byte, sizes []uint64) *MerkleTreeNode {
 		links = append(links, *NewMerkleTreeNode(hashs[index], sizes[index]))
 		totalSize = totalSize + sizes[index]
 		linksNum = linksNum + 1
-		allHashs = append(allHashs, hashs[index][:]...)
+		allHashs = append(allHashs, hashs[index]...)
 	}
 
-	hashBytes := sha256.Sum256(allHashs[:])
+	hashBytes := sha256.Sum256(allHashs)
 	return &MerkleTreeNode{
 		Hash:     hex.EncodeToString(hashBytes[:]),
 		Size:     totalSize,
 		LinksNum: linksNum,
 		Links:    links,
 	}
+}
+
+func (mt *MerkleTreeNode) HashBytes() []byte {
+	hashBytes, _ := hex.DecodeString(mt.Hash)
+	return hashBytes
+}
+
+func (mt *MerkleTreeNode) IsLegal() bool {
+	if mt.LinksNum == 0 {
+		return true
+	}
+
+	allHashs := make([]byte, 0)
+	var totalSize uint64 = 0
+
+	for index := range mt.Links {
+		if !mt.Links[index].IsLegal() {
+			return false
+		}
+
+		totalSize = totalSize + mt.Links[index].Size
+		hashBytes := mt.Links[index].HashBytes()
+		allHashs = append(allHashs, hashBytes...)
+	}
+
+	allHashsBytes := sha256.Sum256(allHashs)
+	return mt.Size == totalSize && mt.Hash == hex.EncodeToString(allHashsBytes[:])
 }

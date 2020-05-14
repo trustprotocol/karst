@@ -3,31 +3,13 @@ package ws
 import (
 	"encoding/json"
 	"io/ioutil"
+	"karst/logger"
 	"net/http"
 	"path/filepath"
 	"strconv"
 
-	. "karst/config"
-	"karst/logger"
-
 	"github.com/gorilla/websocket"
 )
-
-type backupMessage struct {
-	Backup string
-}
-
-type nodeDataMessage struct {
-	FileHash  string `json:"file_hash"`
-	NodeHash  string `json:"node_hash"`
-	NodeIndex uint64 `json:"node_index"`
-}
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 func nodeData(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
@@ -56,7 +38,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debug("Recv backup message: %s, message type is %d", message, mt)
 
-	var backupMes backupMessage
+	var backupMes BackupMessage
 	err = json.Unmarshal([]byte(message), &backupMes)
 	if err != nil {
 		logger.Error("Unmarshal failed: %s", err)
@@ -67,7 +49,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if backupMes.Backup != Config.Backup {
+	if backupMes.Backup != cfg.Backup {
 		logger.Error("Need right backup")
 		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		if err != nil {
@@ -98,7 +80,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 
 		logger.Debug("Recv node data get message: %s, message type is %d", message, mt)
 
-		var nodeDataMsg nodeDataMessage
+		var nodeDataMsg NodeDataMessage
 		err = json.Unmarshal([]byte(message), &nodeDataMsg)
 		if err != nil {
 			logger.Error("Unmarshal failed: %s", err)
@@ -109,7 +91,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nodeFilePath := filepath.FromSlash(Config.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
+		nodeFilePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
 		logger.Debug("Try to get '%s' file", nodeFilePath)
 
 		fileBytes, err := ioutil.ReadFile(nodeFilePath)
@@ -128,17 +110,4 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-}
-
-// TODO: wss is needed
-func StartWsServer() error {
-	http.HandleFunc("/api/v0/node/data", nodeData)
-
-	logger.Info("Start ws at '%s'", Config.BaseUrl)
-	if err := http.ListenAndServe(Config.BaseUrl, nil); err != nil {
-		return err
-	}
-
-	return nil
 }

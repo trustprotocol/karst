@@ -3,67 +3,77 @@ package config
 import (
 	"karst/logger"
 	"karst/util"
+	"os"
+	"sync"
 
 	"github.com/spf13/viper"
 )
 
 type Configuration struct {
-	KarstPath      string
-	BaseUrl        string
-	ConfigFilePath string
-	FilesPath      string
-	DbPath         string
-	FilePartSize   uint64
-	TeeBaseUrl     string
-	LogLevel       string
-	Backup         string
+	KarstPaths   *util.KarstPaths
+	BaseUrl      string
+	FilePartSize uint64
+	TeeBaseUrl   string
+	LogLevel     string
+	Backup       string
+	ChainAccount string
 }
 
-var Config *Configuration
+var config *Configuration
+var once sync.Once
 
-func ReadConfig() *Configuration {
-	// Get base karst paths
-	karstPath, configFilePath, filesPath, dbPath := util.GetKarstPaths()
+func GetInstance() *Configuration {
+	once.Do(func() {
+		// Get base karst paths
+		karstPaths := util.GetKarstPaths()
 
-	// Check directory
-	if !util.IsDirOrFileExist(karstPath) || !util.IsDirOrFileExist(configFilePath) {
-		logger.Warn("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPath)
-		panic(nil)
-	}
+		// Check directory
+		if !util.IsDirOrFileExist(karstPaths.KarstPath) || !util.IsDirOrFileExist(karstPaths.ConfigFilePath) {
+			logger.Warn("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPaths.KarstPath)
+			os.Exit(-1)
+		}
 
-	// Read configuration
-	viper.SetConfigFile(configFilePath)
-	if err := viper.ReadInConfig(); err != nil {
-		logger.Error("Fatal error in reading config file: %s \n", err)
-		panic(err)
-	}
+		// Read configuration
+		viper.SetConfigFile(karstPaths.ConfigFilePath)
+		if err := viper.ReadInConfig(); err != nil {
+			logger.Error("Fatal error in reading config file: %s \n", err)
+			panic(err)
+		}
 
-	// Set configuration
-	Config = &Configuration{}
-	Config.KarstPath = karstPath
-	Config.ConfigFilePath = configFilePath
-	Config.FilesPath = filesPath
-	Config.DbPath = dbPath
-	Config.FilePartSize = 1 * (1 << 20) // 1 MB
-	Config.BaseUrl = viper.GetString("base_url")
-	Config.TeeBaseUrl = viper.GetString("tee_base_url")
-	Config.LogLevel = viper.GetString("log_level")
-	Config.Backup = viper.GetString("backup")
+		// Set configuration
+		config = &Configuration{}
+		config.KarstPaths = karstPaths
+		config.FilePartSize = 1 * (1 << 20) // 1 MB
+		config.BaseUrl = viper.GetString("base_url")
+		config.TeeBaseUrl = viper.GetString("tee_base_url")
+		config.LogLevel = viper.GetString("log_level")
+		config.Backup = viper.GetString("backup")
+		config.ChainAccount = viper.GetString("chian_account")
 
-	// Use configuration
-	if Config.LogLevel == "debug" {
-		logger.OpenDebug()
-	}
+		// Use configuration
+		if config.LogLevel == "debug" {
+			logger.OpenDebug()
+		}
+	})
 
-	return Config
+	return config
 }
 
-func WriteDefaultConfig(configFilePath string) {
+func (cfg *Configuration) Show() {
+	logger.Info("KarstPath = %s", cfg.KarstPaths.KarstPath)
+	logger.Info("BaseUrl = %s", cfg.BaseUrl)
+	logger.Info("TeeBaseUrl = %s", cfg.TeeBaseUrl)
+	logger.Info("LogLevel = %s", cfg.LogLevel)
+	logger.Info("ChainAccount = %s", cfg.ChainAccount)
+}
+
+func WriteDefault(configFilePath string) {
 	viper.SetConfigType("json")
 	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
 	viper.Set("backup", "")
+	viper.Set("chian_account", "")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		logger.Error("Fatal error in creating karst configuration file: %s\n", err)
