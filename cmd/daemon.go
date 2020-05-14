@@ -34,7 +34,7 @@ var daemonCmd = &cobra.Command{
 		}
 
 		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db)
+			wsCmd.Register(db, cfg)
 		}
 
 		// Start websocket service

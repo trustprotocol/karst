@@ -26,12 +26,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-type PutMessage struct {
-	Backup       string
-	FilePath     string
-	ChainAccount string
-}
-
 func init() {
 	putWsCmd.Cmd.Flags().String("chain_account", "", "file will be saved in the karst node with this 'chain_account' by storage market")
 	putWsCmd.ConnectCmdAndWs()
@@ -39,7 +33,6 @@ func init() {
 }
 
 var putWsCmd = &WsCmd{
-	Cfg: config.GetInstance(),
 	Cmd: &cobra.Command{
 		Use:   "put [file-path] [flags]",
 		Short: "Put file into karst",

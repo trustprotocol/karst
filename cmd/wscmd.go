@@ -22,6 +22,7 @@ type WsCmd struct {
 }
 
 func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
+	wsc.Cfg = config.GetInstance()
 	// Connect to ws
 	url := "ws://" + wsc.Cfg.BaseUrl + "/api/v0/cmd/" + wsc.WsEndpoint
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
@@ -128,7 +129,8 @@ func (wsc *WsCmd) sendBack(c *websocket.Conn, status int64) {
 	}
 }
 
-func (wsc *WsCmd) Register(db *leveldb.DB) {
+func (wsc *WsCmd) Register(db *leveldb.DB, cfg *config.Configuration) {
 	wsc.Db = db
+	wsc.Cfg = cfg
 	http.HandleFunc("/api/v0/cmd/"+wsc.WsEndpoint, wsc.handleFunc)
 }
