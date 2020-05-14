@@ -215,6 +215,15 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	}
 	logger.Debug("Store permission request return: %s", message)
 
+	storeCheckMsg := ws.StoreCheckMessage{}
+	if err = json.Unmarshal(message, &storeCheckMsg); err != nil {
+		return fmt.Errorf("Unmarshal json: %s", err)
+	}
+
+	if storeCheckMsg.IsStored || storeCheckMsg.Status != 200 {
+		return fmt.Errorf(storeCheckMsg.Info)
+	}
+
 	// Send nodes of file
 	logger.Info("Send '%s' file to '%s' karst node, the number of nodes of this file is %d", putProcesser.MekleTree.Hash, chainAccount, putProcesser.MekleTree.LinksNum)
 	for index := range putProcesser.MekleTree.Links {

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -74,6 +75,7 @@ func put(w http.ResponseWriter, r *http.Request) {
 	// Check if the file has been stored locally
 	if ok, _ := db.Has([]byte(storePermissionMsg.MekleTree.Hash), nil); ok {
 		storeCheckMsg.IsStored = true
+		storeCheckMsg.Info = fmt.Sprintf("The file '%s' has been stored already", storePermissionMsg.MekleTree.Hash)
 		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
 		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
 		if err != nil {
@@ -85,6 +87,7 @@ func put(w http.ResponseWriter, r *http.Request) {
 	// Check if merkle is legal
 	if !storePermissionMsg.MekleTree.IsLegal() {
 		storeCheckMsg.Status = 400
+		storeCheckMsg.Info = "The mekle tree of this file is illegal"
 		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
 		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
 		if err != nil {

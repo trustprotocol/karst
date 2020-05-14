@@ -9,8 +9,9 @@ type StorePermissionMessage struct {
 }
 
 type StoreCheckMessage struct {
-	IsStored bool `json:"is_stored"`
-	Status   int  `json:"status"`
+	IsStored bool   `json:"is_stored"`
+	Status   int    `json:"status"`
+	Info     string `json:"info"`
 }
 
 type BackupMessage struct {

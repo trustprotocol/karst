@@ -72,7 +72,7 @@ var putWsCmd = &WsCmd{
 				}
 			}
 
-			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s !", args["file"], time.Since(timeStart))
+			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
 				Err:    "",
@@ -85,12 +85,10 @@ var putWsCmd = &WsCmd{
 			// Split file
 			if err := putProcesser.Split(false); err != nil {
 				putProcesser.DealErrorForLocal(err)
-				abc := PutReturnMessage{
+				return PutReturnMessage{
 					Err:    err.Error(),
 					Status: 500,
 				}
-				logger.Info("%s", err)
-				return abc
 			} else {
 				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
