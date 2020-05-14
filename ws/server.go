@@ -10,12 +10,16 @@ import (
 	"strconv"
 	"time"
 
-	. "karst/config"
+	"karst/config"
 	"karst/logger"
 	"karst/model"
 
 	"github.com/gorilla/websocket"
+	"github.com/syndtr/goleveldb/leveldb"
 )
+
+var db *leveldb.DB = nil
+var cfg *config.Configuration = nil
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -32,7 +36,7 @@ func put(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	// Check permission
+	// Get store permission message
 	timeStart := time.Now()
 	mt, message, err := c.ReadMessage()
 	if err != nil {
@@ -61,18 +65,37 @@ func put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Base store check message
+	storeCheckMsg := model.StoreCheckMessage{
+		IsStored: false,
+		Status:   200,
+	}
+
 	// TODO: check store order extrisic
-	// Check if merkle is legal
-	if !storePermissionMsg.MekleTree.IsLegal() {
-		logger.Error("MekleTree is wrong")
-		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+	// Check if the file has been stored locally
+	if ok, _ := db.Has([]byte(storePermissionMsg.MekleTree.Hash), nil); ok {
+		storeCheckMsg.IsStored = true
+		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
+		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
 		if err != nil {
 			logger.Error("Write err: %s", err)
 		}
 		return
 	}
 
-	err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
+	// Check if merkle is legal
+	if !storePermissionMsg.MekleTree.IsLegal() {
+		storeCheckMsg.Status = 400
+		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
+		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
+		if err != nil {
+			logger.Error("Write err: %s", err)
+		}
+		return
+	}
+
+	storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
+	err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
 	if err != nil {
 		logger.Error("Write err: %s", err)
 	}
@@ -148,7 +171,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if backupMes.Backup != Config.Backup {
+	if backupMes.Backup != cfg.Backup {
 		logger.Error("Need right backup")
 		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		if err != nil {
@@ -190,7 +213,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nodeFilePath := filepath.FromSlash(Config.KarstPaths.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
+		nodeFilePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
 		logger.Debug("Try to get '%s' file", nodeFilePath)
 
 		fileBytes, err := ioutil.ReadFile(nodeFilePath)
@@ -213,12 +236,14 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO: wss is needed
-func StartWsServer() error {
+func StartServer(inDb *leveldb.DB, inConfig *config.Configuration) error {
+	db = inDb
+	cfg = inConfig
 	http.HandleFunc("/api/v0/node/data", nodeData)
 	http.HandleFunc("/api/v0/put", put)
 
-	logger.Info("Start ws at '%s'", Config.BaseUrl)
-	if err := http.ListenAndServe(Config.BaseUrl, nil); err != nil {
+	logger.Info("Start ws at '%s'", cfg.BaseUrl)
+	if err := http.ListenAndServe(cfg.BaseUrl, nil); err != nil {
 		return err
 	}
 

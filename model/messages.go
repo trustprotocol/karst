@@ -8,6 +8,11 @@ type StorePermissionMessage struct {
 	MekleTree      *merkletree.MerkleTreeNode `json:"merkle_tree"`
 }
 
+type StoreCheckMessage struct {
+	IsStored bool `json:"is_stored"`
+	Status   int  `json:"status"`
+}
+
 type BackupMessage struct {
 	Backup string `json:"back_up"`
 }

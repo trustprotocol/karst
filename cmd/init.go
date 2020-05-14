@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	. "karst/config"
+	"karst/config"
 	"karst/logger"
 	"karst/util"
 	"os"
@@ -35,11 +35,6 @@ var initCmd = &cobra.Command{
 				panic(err)
 			}
 
-			if err := os.MkdirAll(karstPaths.OrderFilesPath, os.ModePerm); err != nil {
-				logger.Error("Fatal error in creating karst order files directory: %s", err)
-				panic(err)
-			}
-
 			if err := os.MkdirAll(karstPaths.TempFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst temp files directory: %s", err)
 				panic(err)
@@ -50,7 +45,7 @@ var initCmd = &cobra.Command{
 				panic(err)
 			}
 
-			WriteDefaultConfig(karstPaths.ConfigFilePath)
+			config.WriteDefault(karstPaths.ConfigFilePath)
 			logger.Info("Initialize karst in '%s' successfully!", karstPaths.KarstPath)
 		}
 	},

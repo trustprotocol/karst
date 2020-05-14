@@ -13,7 +13,6 @@ type KarstPaths struct {
 	KarstPath      string
 	ConfigFilePath string
 	FilesPath      string
-	OrderFilesPath string
 	TempFilesPath  string
 	DbPath         string
 }
@@ -27,7 +26,6 @@ func GetKarstPaths() *KarstPaths {
 
 	karstPaths.ConfigFilePath = filepath.FromSlash(karstPaths.KarstPath + "/config.json")
 	karstPaths.FilesPath = filepath.FromSlash(karstPaths.KarstPath + "/files")
-	karstPaths.OrderFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/order_files")
 	karstPaths.TempFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/temp_files")
 	karstPaths.DbPath = filepath.FromSlash(karstPaths.KarstPath + "/db")
 

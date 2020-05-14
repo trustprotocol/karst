@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	. "karst/config"
+	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
 	"karst/model"
@@ -26,37 +26,53 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-func init() {
-	putCmd.Flags().String("chain_account", "", "file will be saved in the karst node with this 'chain_account' by storage market")
-	rootCmd.AddCommand(putCmd)
+type PutMessage struct {
+	Backup       string
+	FilePath     string
+	ChainAccount string
 }
 
-var putCmd = &cobra.Command{
-	Use:   "put [file-path] [flags]",
-	Short: "Put file into karst",
-	Long:  "A file storage interface provided by karst",
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+func init() {
+	putWsCmd.Cmd.Flags().String("chain_account", "", "file will be saved in the karst node with this 'chain_account' by storage market")
+	putWsCmd.ConnectCmdAndWs()
+	rootCmd.AddCommand(putWsCmd.Cmd)
+}
+
+var putWsCmd = &WsCmd{
+	Cfg: config.GetInstance(),
+	Cmd: &cobra.Command{
+		Use:   "put [file-path] [flags]",
+		Short: "Put file into karst",
+		Long:  "A file storage interface provided by karst",
+		Args:  cobra.MinimumNArgs(1),
+	},
+	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
+		chainAccount, err := cmd.Flags().GetString("chain_account")
+		if err != nil {
+			return nil, err
+		}
+
+		reqBody := map[string]string{
+			"file_path":     args[0],
+			"chain_account": chainAccount,
+		}
+
+		return reqBody, nil
+	},
+	WsEndpoint: "put",
+	WsRunner: func(args map[string]string, wsc *WsCmd) (error, int64) {
 		// Base class
 		timeStart := time.Now()
-		ReadConfig()
-
-		db, err := leveldb.OpenFile(Config.KarstPaths.DbPath, nil)
-		if err != nil {
-			logger.Error("Fatal error in opening db: %s\n", err)
-			panic(err)
-		}
-		defer db.Close()
-		putProcesser := newPutProcesser(args[0], db)
+		putProcesser := newPutProcesser(args["file_path"], wsc.Db, wsc.Cfg)
 
 		// Remote mode or local mode
-		chainAccount, _ := cmd.Flags().GetString("chain_account")
+		chainAccount := args["chain_account"]
 		if chainAccount != "" {
 			logger.Info("Remote mode, chain account: %s", chainAccount)
 
 			if err := putProcesser.split(true); err != nil {
 				putProcesser.dealErrorForRemote(err)
-				return
+				return err, 500
 			} else {
 				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
@@ -64,17 +80,17 @@ var putCmd = &cobra.Command{
 
 			if err := putProcesser.sendTo(chainAccount); err != nil {
 				putProcesser.dealErrorForRemote(err)
-				return
+				return err, 500
 			}
 
-			logger.Info("Remotely put '%s' successfully in %s !", args[0], time.Since(timeStart))
+			logger.Info("Remotely put '%s' successfully in %s !", args["file"], time.Since(timeStart))
 		} else {
 			logger.Info("Local mode")
 
 			// Split file
 			if err := putProcesser.split(false); err != nil {
 				putProcesser.dealErrorForLocal(err)
-				return
+				return err, 500
 			} else {
 				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
@@ -84,15 +100,17 @@ var putCmd = &cobra.Command{
 			// Seal file
 			if err := putProcesser.sealFile(); err != nil {
 				putProcesser.dealErrorForLocal(err)
-				return
+				return err, 500
 			} else {
 				merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
 				logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
 			}
 
 			// Log results
-			logger.Info("Locally put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args[0], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+			logger.Info("Locally put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args["file"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+
 		}
+		return nil, 200
 	},
 }
 
@@ -107,6 +125,7 @@ type PutInfo struct {
 type PutProcesser struct {
 	InputfilePath             string
 	Db                        *leveldb.DB
+	Config                    *config.Configuration
 	FileStorePathInBegin      string
 	Md5                       string
 	FileStorePathInHash       string
@@ -115,9 +134,10 @@ type PutProcesser struct {
 	MekleTreeSealed           *merkletree.MerkleTreeNode
 }
 
-func newPutProcesser(inputfilePath string, db *leveldb.DB) *PutProcesser {
+func newPutProcesser(inputfilePath string, db *leveldb.DB, Config *config.Configuration) *PutProcesser {
 	return &PutProcesser{
 		InputfilePath: inputfilePath,
+		Config:        Config,
 		Db:            db,
 	}
 }
@@ -133,7 +153,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 
 	fileBasePath := ""
 	if isRemote {
-		fileBasePath = Config.KarstPaths.TempFilesPath
+		fileBasePath = putProcesser.Config.KarstPaths.TempFilesPath
 		// Create md5 file directory
 		fileStorePathInBegin := filepath.FromSlash(fileBasePath + "/" + strconv.FormatInt(time.Now().UnixNano(), 10))
 		if err := os.MkdirAll(fileStorePathInBegin, os.ModePerm); err != nil {
@@ -143,7 +163,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 		}
 
 	} else {
-		fileBasePath = Config.KarstPaths.FilesPath
+		fileBasePath = putProcesser.Config.KarstPaths.FilesPath
 		// Check md5
 		md5hash := md5.New()
 		if _, err = io.Copy(md5hash, file); err != nil {
@@ -182,7 +202,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 	}
 
 	// Split file
-	totalPartsNum := uint64(math.Ceil(float64(fileInfo.Size()) / float64(Config.FilePartSize)))
+	totalPartsNum := uint64(math.Ceil(float64(fileInfo.Size()) / float64(putProcesser.Config.FilePartSize)))
 	partHashs := make([][]byte, 0)
 	partSizes := make([]uint64, 0)
 
@@ -193,7 +213,7 @@ func (putProcesser *PutProcesser) split(isRemote bool) error {
 		bar.Increment()
 
 		// Get part of file
-		partSize := int(math.Min(float64(Config.FilePartSize), float64(fileInfo.Size()-int64(i*Config.FilePartSize))))
+		partSize := int(math.Min(float64(putProcesser.Config.FilePartSize), float64(fileInfo.Size()-int64(i*putProcesser.Config.FilePartSize))))
 		partBuffer := make([]byte, partSize)
 
 		if _, err = file.Read(partBuffer); err != nil {
@@ -263,7 +283,7 @@ func (putProcesser *PutProcesser) sendTo(chainAccount string) error {
 	defer c.Close()
 
 	storePermissionMsg := model.StorePermissionMessage{
-		ChainAccount:   Config.ChainAccount,
+		ChainAccount:   putProcesser.Config.ChainAccount,
 		StoreOrderHash: storeOrderHash,
 		MekleTree:      putProcesser.MekleTree,
 	}
@@ -312,7 +332,7 @@ func (putProcesser *PutProcesser) sendTo(chainAccount string) error {
 
 func (putProcesser *PutProcesser) sealFile() error {
 	// New TEE
-	tee, err := tee.NewTee(Config.TeeBaseUrl, Config.Backup)
+	tee, err := tee.NewTee(putProcesser.Config.TeeBaseUrl, putProcesser.Config.Backup)
 	if err != nil {
 		return fmt.Errorf("Fatal error in creating tee structure: %s", err)
 	}
