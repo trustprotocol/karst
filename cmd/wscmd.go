@@ -5,7 +5,6 @@ import (
 	"karst/config"
 	"karst/logger"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
@@ -18,7 +17,7 @@ type WsCmd struct {
 	Cmd        *cobra.Command
 	WsEndpoint string
 	Connecter  func(cmd *cobra.Command, args []string) (map[string]string, error)
-	WsRunner   func(args map[string]string, wsc *WsCmd) (error, int64)
+	WsRunner   func(args map[string]string, wsc *WsCmd) interface{}
 }
 
 func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
@@ -45,8 +44,6 @@ func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("%s", err)
 		return
-	} else {
-		logger.Debug("Request body for ws: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -114,16 +111,18 @@ func (wsc *WsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Run deal function
-	if err, status := wsc.WsRunner(args, wsc); err != nil {
-		wsc.sendBack(c, status)
-	} else {
-		wsc.sendBack(c, 200)
-	}
-
+	wsc.sendBack(c, wsc.WsRunner(args, wsc))
 }
 
-func (wsc *WsCmd) sendBack(c *websocket.Conn, status int64) {
-	err := c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": "+strconv.FormatInt(status, 10)+" }"))
+func (wsc *WsCmd) sendBack(c *websocket.Conn, back interface{}) {
+	backBytes, err := json.Marshal(back)
+	if err != nil {
+		logger.Error("%s", err)
+	} else {
+		logger.Debug("Return: %s", string(backBytes))
+	}
+
+	err = c.WriteMessage(websocket.TextMessage, backBytes)
 	if err != nil {
 		logger.Error("Write err: %s", err)
 	}

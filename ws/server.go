@@ -12,7 +12,6 @@ import (
 
 	"karst/config"
 	"karst/logger"
-	"karst/model"
 
 	"github.com/gorilla/websocket"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -54,7 +53,7 @@ func put(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Debug("Recv store permission message: %s, message type is %d", message, mt)
-	var storePermissionMsg model.StorePermissionMessage
+	var storePermissionMsg StorePermissionMessage
 	err = json.Unmarshal([]byte(message), &storePermissionMsg)
 	if err != nil {
 		logger.Error("Unmarshal failed: %s", err)
@@ -66,7 +65,7 @@ func put(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Base store check message
-	storeCheckMsg := model.StoreCheckMessage{
+	storeCheckMsg := StoreCheckMessage{
 		IsStored: false,
 		Status:   200,
 	}
@@ -160,7 +159,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debug("Recv backup message: %s, message type is %d", message, mt)
 
-	var backupMes model.BackupMessage
+	var backupMes BackupMessage
 	err = json.Unmarshal([]byte(message), &backupMes)
 	if err != nil {
 		logger.Error("Unmarshal failed: %s", err)
@@ -202,7 +201,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 
 		logger.Debug("Recv node data get message: %s, message type is %d", message, mt)
 
-		var nodeDataMsg model.NodeDataMessage
+		var nodeDataMsg NodeDataMessage
 		err = json.Unmarshal([]byte(message), &nodeDataMsg)
 		if err != nil {
 			logger.Error("Unmarshal failed: %s", err)
