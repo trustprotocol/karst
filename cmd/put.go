@@ -13,7 +13,7 @@ import (
 type PutReturnMessage struct {
 	Info   string
 	Status int
-	Err    error
+	Err    string
 }
 
 func init() {
@@ -56,7 +56,7 @@ var putWsCmd = &WsCmd{
 			if err := putProcesser.Split(true); err != nil {
 				putProcesser.DealErrorForRemote(err)
 				return PutReturnMessage{
-					Err:    err,
+					Err:    err.Error(),
 					Status: 500,
 				}
 			} else {
@@ -67,7 +67,7 @@ var putWsCmd = &WsCmd{
 			if err := putProcesser.SendTo(chainAccount); err != nil {
 				putProcesser.DealErrorForRemote(err)
 				return PutReturnMessage{
-					Err:    err,
+					Err:    err.Error(),
 					Status: 500,
 				}
 			}
@@ -75,7 +75,7 @@ var putWsCmd = &WsCmd{
 			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s !", args["file"], time.Since(timeStart))
 			logger.Info(returnInfo)
 			return PutReturnMessage{
-				Err:    nil,
+				Err:    "",
 				Status: 200,
 				Info:   returnInfo,
 			}
@@ -85,10 +85,12 @@ var putWsCmd = &WsCmd{
 			// Split file
 			if err := putProcesser.Split(false); err != nil {
 				putProcesser.DealErrorForLocal(err)
-				return PutReturnMessage{
-					Err:    err,
+				abc := PutReturnMessage{
+					Err:    err.Error(),
 					Status: 500,
 				}
+				logger.Info("%s", err)
+				return abc
 			} else {
 				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
@@ -99,7 +101,7 @@ var putWsCmd = &WsCmd{
 			if err := putProcesser.SealFile(); err != nil {
 				putProcesser.DealErrorForLocal(err)
 				return PutReturnMessage{
-					Err:    err,
+					Err:    err.Error(),
 					Status: 500,
 				}
 			} else {
@@ -111,7 +113,7 @@ var putWsCmd = &WsCmd{
 			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args["file"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
-				Err:    nil,
+				Err:    "",
 				Status: 200,
 				Info:   returnInfo,
 			}

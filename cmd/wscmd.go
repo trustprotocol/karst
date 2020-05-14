@@ -58,7 +58,7 @@ func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
 		logger.Error("%s", err)
 		return
 	}
-	logger.Debug("Recv: %s", message)
+	logger.Info("%s", message)
 }
 
 func (wsc *WsCmd) ConnectCmdAndWs() {
