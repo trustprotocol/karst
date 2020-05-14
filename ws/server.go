@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -102,6 +103,13 @@ func put(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Write err: %s", err)
 	}
 
+	// Create file directory
+	fileStorePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + storePermissionMsg.MekleTree.Hash)
+	if err := os.MkdirAll(fileStorePath, os.ModePerm); err != nil {
+		logger.Error("Fatal error in creating file store directory: %s", err)
+		return
+	}
+
 	// Receive nodes of file and store to file folder
 	logger.Info("Receiving nodes of '%s', number is %d", storePermissionMsg.MekleTree.Hash, storePermissionMsg.MekleTree.LinksNum)
 	for index := range storePermissionMsg.MekleTree.Links {
@@ -124,7 +132,24 @@ func put(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Save node to disk
+		nodeFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + storePermissionMsg.MekleTree.Links[index].Hash)
+
+		// Write to disk
+		nodeFile, err := os.Create(nodeFileName)
+		if err != nil {
+			logger.Error("Fatal error in creating the part '%s': %s", nodeFileName, err)
+			os.RemoveAll(fileStorePath)
+			return
+		}
+		nodeFile.Close()
+
+		if err = ioutil.WriteFile(nodeFileName, message, os.ModeAppend); err != nil {
+			logger.Error("Fatal error in writing the part '%s': %s", nodeFileName, err)
+			os.RemoveAll(fileStorePath)
+			return
+		}
 	}
+
 	// Asynchronous seal
 
 	// Send success message

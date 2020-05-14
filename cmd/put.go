@@ -22,6 +22,7 @@ func init() {
 	rootCmd.AddCommand(putWsCmd.Cmd)
 }
 
+// TODO: Optimize error flow and increase status
 var putWsCmd = &WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "put [file-path] [flags]",
@@ -72,7 +73,7 @@ var putWsCmd = &WsCmd{
 				}
 			}
 
-			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
+			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s' -- '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
 				Err:    "",
@@ -108,7 +109,7 @@ var putWsCmd = &WsCmd{
 			}
 
 			// Log results
-			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s' -> '%s'.", args["file"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTreeSealed.Hash)
+			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s'.", args["file"], time.Since(timeStart), putProcesser.MekleTree.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
 				Err:    "",
