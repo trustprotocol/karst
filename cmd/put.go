@@ -61,7 +61,7 @@ var putWsCmd = &WsCmd{
 					Status: 500,
 				}
 			} else {
-				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
+				merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 			}
 
@@ -73,7 +73,7 @@ var putWsCmd = &WsCmd{
 				}
 			}
 
-			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s' -- '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MekleTree.Hash, putProcesser.MekleTree.Hash)
+			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MerkleTree.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
 				Err:    "",
@@ -91,7 +91,7 @@ var putWsCmd = &WsCmd{
 					Status: 500,
 				}
 			} else {
-				merkleTreeBytes, _ := json.Marshal(putProcesser.MekleTree)
+				merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
 				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 			}
 
@@ -104,12 +104,12 @@ var putWsCmd = &WsCmd{
 					Status: 500,
 				}
 			} else {
-				merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MekleTreeSealed)
+				merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MerkleTreeSealed)
 				logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
 			}
 
 			// Log results
-			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s'.", args["file"], time.Since(timeStart), putProcesser.MekleTree.Hash)
+			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s' -- '%s'.", args["file"], time.Since(timeStart), putProcesser.MerkleTree.Hash, putProcesser.MerkleTreeSealed.Hash)
 			logger.Info(returnInfo)
 			return PutReturnMessage{
 				Err:    "",

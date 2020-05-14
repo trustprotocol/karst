@@ -5,7 +5,7 @@ import "karst/merkletree"
 type StorePermissionMessage struct {
 	ChainAccount   string                     `json:"chain_account"`
 	StoreOrderHash string                     `json:"store_order"`
-	MekleTree      *merkletree.MerkleTreeNode `json:"merkle_tree"`
+	MerkleTree     *merkletree.MerkleTreeNode `json:"merkle_tree"`
 }
 
 type StoreCheckMessage struct {

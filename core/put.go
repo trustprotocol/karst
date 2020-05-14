@@ -11,6 +11,7 @@ import (
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
+	"karst/model"
 	"karst/tee"
 	"karst/util"
 	"karst/ws"
@@ -20,18 +21,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cheggaaa/pb"
 	"github.com/gorilla/websocket"
+
+	"github.com/cheggaaa/pb"
 	"github.com/syndtr/goleveldb/leveldb"
 )
-
-type PutInfo struct {
-	InputfilePath   string
-	Md5             string
-	MekleTree       *merkletree.MerkleTreeNode
-	MekleTreeSealed *merkletree.MerkleTreeNode
-	StoredPath      string
-}
 
 type PutProcesser struct {
 	InputfilePath             string
@@ -40,9 +34,9 @@ type PutProcesser struct {
 	FileStorePathInBegin      string
 	Md5                       string
 	FileStorePathInHash       string
-	MekleTree                 *merkletree.MerkleTreeNode
+	MerkleTree                *merkletree.MerkleTreeNode
 	FileStorePathInSealedHash string
-	MekleTreeSealed           *merkletree.MerkleTreeNode
+	MerkleTreeSealed          *merkletree.MerkleTreeNode
 }
 
 func NewPutProcesser(inputfilePath string, db *leveldb.DB, Config *config.Configuration) *PutProcesser {
@@ -170,10 +164,10 @@ func (putProcesser *PutProcesser) Split(isRemote bool) error {
 		if err = putProcesser.Db.Put([]byte(fileMerkleTree.Hash), nil, nil); err != nil {
 			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
 		} else {
-			putProcesser.MekleTree = fileMerkleTree
+			putProcesser.MerkleTree = fileMerkleTree
 		}
 	} else {
-		putProcesser.MekleTree = fileMerkleTree
+		putProcesser.MerkleTree = fileMerkleTree
 	}
 
 	return nil
@@ -196,7 +190,7 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	storePermissionMsg := ws.StorePermissionMessage{
 		ChainAccount:   putProcesser.Config.ChainAccount,
 		StoreOrderHash: storeOrderHash,
-		MekleTree:      putProcesser.MekleTree,
+		MerkleTree:     putProcesser.MerkleTree,
 	}
 
 	storePermissionMsgBytes, err := json.Marshal(storePermissionMsg)
@@ -225,9 +219,9 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	}
 
 	// Send nodes of file
-	logger.Info("Send '%s' file to '%s' karst node, the number of nodes of this file is %d", putProcesser.MekleTree.Hash, chainAccount, putProcesser.MekleTree.LinksNum)
-	for index := range putProcesser.MekleTree.Links {
-		nodeFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MekleTree.Links[index].Hash)
+	logger.Info("Send '%s' file to '%s' karst node, the number of nodes of this file is %d", putProcesser.MerkleTree.Hash, chainAccount, putProcesser.MerkleTree.LinksNum)
+	for index := range putProcesser.MerkleTree.Links {
+		nodeFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MerkleTree.Links[index].Hash)
 		logger.Debug("Try to get '%s' file", nodeFilePath)
 
 		fileBytes, err := ioutil.ReadFile(nodeFilePath)
@@ -258,30 +252,30 @@ func (putProcesser *PutProcesser) SealFile() error {
 	}
 
 	// Send merkle tree to TEE for sealing
-	mekleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(putProcesser.FileStorePathInHash, putProcesser.MekleTree)
+	merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(putProcesser.FileStorePathInHash, putProcesser.MerkleTree)
 	if err != nil {
-		return fmt.Errorf("Fatal error in sealing file '%s' : %s", putProcesser.MekleTree.Hash, err)
+		return fmt.Errorf("Fatal error in sealing file '%s' : %s", putProcesser.MerkleTree.Hash, err)
 	} else {
 		putProcesser.FileStorePathInSealedHash = fileStorePathInSealedHash
 	}
 
 	// Store sealed merkle tree info to db
-	if err = putProcesser.Db.Put([]byte(putProcesser.MekleTree.Hash), []byte(mekleTreeSealed.Hash), nil); err != nil {
+	if err = putProcesser.Db.Put([]byte(putProcesser.MerkleTree.Hash), []byte(merkleTreeSealed.Hash), nil); err != nil {
 		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
 	} else {
-		putInfo := &PutInfo{
-			InputfilePath:   putProcesser.InputfilePath,
-			Md5:             putProcesser.Md5,
-			MekleTree:       putProcesser.MekleTree,
-			MekleTreeSealed: mekleTreeSealed,
-			StoredPath:      putProcesser.FileStorePathInSealedHash,
+		putInfo := &model.PutInfo{
+			InputfilePath:    putProcesser.InputfilePath,
+			Md5:              putProcesser.Md5,
+			MerkleTree:       putProcesser.MerkleTree,
+			MerkleTreeSealed: merkleTreeSealed,
+			StoredPath:       putProcesser.FileStorePathInSealedHash,
 		}
 
 		putInfoBytes, _ := json.Marshal(putInfo)
-		if err = putProcesser.Db.Put([]byte(mekleTreeSealed.Hash), putInfoBytes, nil); err != nil {
+		if err = putProcesser.Db.Put([]byte(merkleTreeSealed.Hash), putInfoBytes, nil); err != nil {
 			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
 		} else {
-			putProcesser.MekleTreeSealed = mekleTreeSealed
+			putProcesser.MerkleTreeSealed = merkleTreeSealed
 		}
 	}
 
@@ -319,14 +313,14 @@ func (putProcesser *PutProcesser) DealErrorForLocal(err error) {
 		}
 	}
 
-	if putProcesser.MekleTree != nil {
-		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTree.Hash), nil); err != nil {
+	if putProcesser.MerkleTree != nil {
+		if err := putProcesser.Db.Delete([]byte(putProcesser.MerkleTree.Hash), nil); err != nil {
 			logger.Error("%s", err)
 		}
 	}
 
-	if putProcesser.MekleTreeSealed != nil {
-		if err := putProcesser.Db.Delete([]byte(putProcesser.MekleTreeSealed.Hash), nil); err != nil {
+	if putProcesser.MerkleTreeSealed != nil {
+		if err := putProcesser.Db.Delete([]byte(putProcesser.MerkleTreeSealed.Hash), nil); err != nil {
 			logger.Error("%s", err)
 		}
 	}
