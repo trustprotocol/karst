@@ -19,6 +19,36 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type PutPermissionMessage struct {
+	ChainAccount   string                     `json:"chain_account"`
+	StoreOrderHash string                     `json:"store_order_hash"`
+	MerkleTree     *merkletree.MerkleTreeNode `json:"merkle_tree"`
+}
+
+func newPutPermissionMessage(msg []byte) (*PutPermissionMessage, error) {
+	var ppm PutPermissionMessage
+	err := json.Unmarshal(msg, &ppm)
+	if err != nil {
+		logger.Error("Unmarshal failed: %s", err)
+		return nil, err
+	}
+	return &ppm, err
+}
+
+type PutPermissionBackMessage struct {
+	IsStored bool   `json:"is_stored"`
+	Status   int    `json:"status"`
+	Info     string `json:"info"`
+}
+
+func (ppb *PutPermissionBackMessage) sendBack(c *websocket.Conn) {
+	ppbBytes, _ := json.Marshal(*ppb)
+	err := c.WriteMessage(websocket.TextMessage, ppbBytes)
+	if err != nil {
+		logger.Error("Write err: %s", err)
+	}
+}
+
 // TODO: ws message management
 func put(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
@@ -31,80 +61,70 @@ func put(w http.ResponseWriter, r *http.Request) {
 
 	// Get store permission message
 	timeStart := time.Now()
+	putPermissionBackMsg := PutPermissionBackMessage{
+		Status:   200,
+		IsStored: false,
+	}
 	mt, message, err := c.ReadMessage()
 	if err != nil {
 		logger.Error("Read err: %s", err)
+		putPermissionBackMsg.Info = err.Error()
+		putPermissionBackMsg.Status = 500
+		putPermissionBackMsg.sendBack(c)
 		return
 	}
 
 	if mt != websocket.TextMessage {
-		logger.Error("Wrong message type is %d", mt)
-		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		if err != nil {
-			logger.Error("Write err: %s", err)
-		}
+		errString := fmt.Sprintf("Wrong message type is %d", mt)
+		logger.Error(errString)
+		putPermissionBackMsg.Info = errString
+		putPermissionBackMsg.Status = 400
+		putPermissionBackMsg.sendBack(c)
+		return
+	}
+
+	putPermissionMsg, err := newPutPermissionMessage(message)
+	if err != nil {
+		errString := "Create put permission message error"
+		logger.Error(errString)
+		putPermissionBackMsg.Info = errString
+		putPermissionBackMsg.Status = 500
+		putPermissionBackMsg.sendBack(c)
 		return
 	}
 
 	logger.Debug("Recv store permission message: %s, message type is %d", message, mt)
-	var storePermissionMsg StorePermissionMessage
-	err = json.Unmarshal([]byte(message), &storePermissionMsg)
-	if err != nil {
-		logger.Error("Unmarshal failed: %s", err)
-		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		if err != nil {
-			logger.Error("Write err: %s", err)
-		}
-		return
-	}
-
-	// Base store check message
-	storeCheckMsg := StoreCheckMessage{
-		IsStored: false,
-		Status:   200,
-	}
 
 	// TODO: check store order extrisic
 	// Check if the file has been stored locally
-	if ok, _ := db.Has([]byte(storePermissionMsg.MerkleTree.Hash), nil); ok {
-		storeCheckMsg.IsStored = true
-		storeCheckMsg.Info = fmt.Sprintf("The file '%s' has been stored already", storePermissionMsg.MerkleTree.Hash)
-		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
-		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
-		if err != nil {
-			logger.Error("Write err: %s", err)
-		}
+	if ok, _ := db.Has([]byte(putPermissionMsg.MerkleTree.Hash), nil); ok {
+		putPermissionBackMsg.IsStored = true
+		putPermissionBackMsg.Info = fmt.Sprintf("The file '%s' has been stored already", putPermissionMsg.MerkleTree.Hash)
+		putPermissionBackMsg.sendBack(c)
 		return
 	}
 
 	// Check if merkle is legal
-	if !storePermissionMsg.MerkleTree.IsLegal() {
-		storeCheckMsg.Status = 400
-		storeCheckMsg.Info = "The merkle tree of this file is illegal"
-		storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
-		err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
-		if err != nil {
-			logger.Error("Write err: %s", err)
-		}
+	if !putPermissionMsg.MerkleTree.IsLegal() {
+		putPermissionBackMsg.Status = 400
+		putPermissionBackMsg.Info = "The merkle tree of this file is illegal"
+		putPermissionBackMsg.sendBack(c)
 		return
 	}
 
-	storeCheckMsgBytes, _ := json.Marshal(storeCheckMsg)
-	err = c.WriteMessage(websocket.TextMessage, storeCheckMsgBytes)
-	if err != nil {
-		logger.Error("Write err: %s", err)
-	}
+	putPermissionBackMsg.Info = fmt.Sprintf("have permission to put this file '%s'", putPermissionMsg.MerkleTree.Hash)
+	putPermissionBackMsg.sendBack(c)
 
 	// Create file directory
-	fileStorePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + storePermissionMsg.MerkleTree.Hash)
+	fileStorePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + putPermissionMsg.MerkleTree.Hash)
 	if err := os.MkdirAll(fileStorePath, os.ModePerm); err != nil {
 		logger.Error("Fatal error in creating file store directory: %s", err)
 		return
 	}
 
 	// Receive nodes of file and store to file folder
-	logger.Info("Receiving nodes of '%s', number is %d", storePermissionMsg.MerkleTree.Hash, storePermissionMsg.MerkleTree.LinksNum)
-	for index := range storePermissionMsg.MerkleTree.Links {
+	logger.Info("Receiving nodes of '%s', number is %d", putPermissionMsg.MerkleTree.Hash, putPermissionMsg.MerkleTree.LinksNum)
+	for index := range putPermissionMsg.MerkleTree.Links {
 		// Read node of file
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -118,13 +138,13 @@ func put(w http.ResponseWriter, r *http.Request) {
 		}
 
 		hashBytes := sha256.Sum256(message)
-		if storePermissionMsg.MerkleTree.Links[index].Hash != hex.EncodeToString(hashBytes[:]) {
-			logger.Error("Receive wrong node, wrong hash is %s, expected hash is %s", hex.EncodeToString(hashBytes[:]), storePermissionMsg.MerkleTree.Links[index].Hash)
+		if putPermissionMsg.MerkleTree.Links[index].Hash != hex.EncodeToString(hashBytes[:]) {
+			logger.Error("Receive wrong node, wrong hash is %s, expected hash is %s", hex.EncodeToString(hashBytes[:]), putPermissionMsg.MerkleTree.Links[index].Hash)
 			return
 		}
 
 		// Save node to disk
-		nodeFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + storePermissionMsg.MerkleTree.Links[index].Hash)
+		nodeFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putPermissionMsg.MerkleTree.Links[index].Hash)
 
 		// Write to disk
 		nodeFile, err := os.Create(nodeFileName)
@@ -142,13 +162,13 @@ func put(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = db.Put([]byte(storePermissionMsg.MerkleTree.Hash), nil, nil); err != nil {
+	if err = db.Put([]byte(putPermissionMsg.MerkleTree.Hash), nil, nil); err != nil {
 		logger.Error("Fatal error in putting information into leveldb: %s", err)
 		os.RemoveAll(fileStorePath)
 		return
 	}
 	// Asynchronous seal
-	go sealFile(storePermissionMsg.MerkleTree, fileStorePath)
+	go sealFile(putPermissionMsg.MerkleTree, fileStorePath)
 
 	// Send success message
 	err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))

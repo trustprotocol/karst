@@ -1,16 +1,21 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"karst/config"
+	"karst/logger"
+	"karst/ws"
+	"karst/wscmd"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
 
 type GetReturnMessage struct {
 	Info   string
 	Status int
-	Err    string
 }
 
 func init() {
@@ -21,7 +26,7 @@ func init() {
 }
 
 // TODO: Optimize error flow and increase status
-var getWsCmd = &WsCmd{
+var getWsCmd = &wscmd.WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "get [file-hash] [flags]",
 		Short: "get file from karst node",
@@ -48,30 +53,93 @@ var getWsCmd = &WsCmd{
 		return reqBody, nil
 	},
 	WsEndpoint: "get",
-	WsRunner: func(args map[string]string, wsc *WsCmd) interface{} {
+	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
 
 		// Check input
 		fileHash := args["file_hash"]
 		if fileHash == "" {
+			errString := "File hash is needed"
+			logger.Error(errString)
 			return GetReturnMessage{
-				Err:    "File hash is needed",
+				Info:   errString,
 				Status: 400,
 			}
 		}
 
 		chainAccount := args["chain_account"]
 		if chainAccount == "" {
+			errString := "Chain account is needed"
+			logger.Error(errString)
 			return GetReturnMessage{
-				Err:    "Chain account is needed",
+				Info:   errString,
 				Status: 400,
 			}
 		}
 
-		return GetReturnMessage{
-			Info:   fmt.Sprintf("Get '%s' successfully in %s !", args["file_hash"], time.Since(timeStart)),
-			Status: 200,
+		// Get file from other karst node
+		getReturnMsg, err := GetFromRemoteKarst(fileHash, chainAccount, wsc.Cfg)
+		if err != nil {
+			logger.Error("Get from remote karst failed, error is: %s", err)
+			return getReturnMsg
+		} else {
+			return GetReturnMessage{
+				Info:   fmt.Sprintf("Get '%s' successfully in %s !", args["file_hash"], time.Since(timeStart)),
+				Status: 200,
+			}
 		}
 	},
+}
+
+func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.Configuration) (GetReturnMessage, error) {
+	// TODO: Get address from chain by using 'remoteChainAccount'
+	karstGetAddress := "ws://127.0.0.1:17000/api/v0/get"
+	// TODO: Get store order hash from chain by using 'fileHash' and cfg.ChainAccount
+	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
+
+	// Connect to other karst node
+	logger.Info("Connecting to %s", karstGetAddress)
+	c, _, err := websocket.DefaultDialer.Dial(karstGetAddress, nil)
+	if err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}, err
+	}
+	defer c.Close()
+
+	getPermissionMsg := ws.GetPermissionMessage{
+		ChainAccount:   cfg.ChainAccount,
+		StoreOrderHash: storeOrderHash,
+		FileHash:       fileHash,
+	}
+
+	getPermissionMsgBytes, err := json.Marshal(getPermissionMsg)
+	if err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}, err
+	}
+
+	logger.Debug("Get permission message is: %s", string(getPermissionMsgBytes))
+	if err = c.WriteMessage(websocket.TextMessage, getPermissionMsgBytes); err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}, err
+	}
+
+	// Read back message
+	_, message, err := c.ReadMessage()
+	if err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}, err
+	}
+	logger.Debug("Get permission request back: %s", message)
+
+	return GetReturnMessage{}, nil
 }

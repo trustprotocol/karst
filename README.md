@@ -29,12 +29,14 @@ go build
 ```
 
 ```shell
+./karst -h
 ./karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
-./karst put <file-path>
 ./karst daemon
+./karst put file.txt --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA
+./karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store
 ```
 
-## Websocket interface
+## Websocket interface (not for user)
 
 ### Put /api/v0/put
 
@@ -141,7 +143,7 @@ Success return:
 {
 	"is_stored": false,
 	"status": 200,
-	"info": ""
+	"info": "have permission to put this file '%s'"
 }
 ```
 

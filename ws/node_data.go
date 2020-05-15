@@ -11,6 +11,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type BackupMessage struct {
+	Backup string `json:"back_up"`
+}
+
+type NodeDataMessage struct {
+	FileHash  string `json:"file_hash"`
+	NodeHash  string `json:"node_hash"`
+	NodeIndex uint64 `json:"node_index"`
+}
+
 func nodeData(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
 	c, err := upgrader.Upgrade(w, r, nil)
