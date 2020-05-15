@@ -31,6 +31,7 @@ var daemonCmd = &cobra.Command{
 		// Register cmd apis
 		var wsCommands = []*WsCmd{
 			putWsCmd,
+			getWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {

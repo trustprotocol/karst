@@ -117,6 +117,5 @@ var putWsCmd = &WsCmd{
 				Info:   returnInfo,
 			}
 		}
-
 	},
 }
