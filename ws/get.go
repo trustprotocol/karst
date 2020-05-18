@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"karst/logger"
+	"karst/model"
+	"karst/tee"
+	"karst/util"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gorilla/websocket"
 )
@@ -89,4 +93,32 @@ func get(w http.ResponseWriter, r *http.Request) {
 	getPermissionBackMsg.Info = fmt.Sprintf("have permission to retrieve this file '%s'", getPermissionMsg.FileHash)
 	getPermissionBackMsg.sendBack(c)
 
+	// Get file information from db
+	putInfoBytes, err := db.Get([]byte(getPermissionMsg.FileHash), nil)
+	if err != nil {
+		logger.Error("Fatal error in creating tee structure: %s", err)
+		return
+	}
+
+	putInfo := model.PutInfo{}
+	if err = json.Unmarshal(putInfoBytes, &putInfo); err != nil {
+		logger.Error("Fatal error in getting put information: %s", err)
+		return
+	}
+
+	// TODO: Avoid duplicate files
+	sealedPath := filepath.FromSlash(putInfo.StoredPath + "/" + putInfo.MerkleTreeSealed.Hash)
+	forUnsealPath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + putInfo.MerkleTreeSealed.Hash)
+	if err = util.CpDir(sealedPath, forUnsealPath); err != nil {
+		logger.Error("Fatal error in coping sealed file: %s", err)
+		return
+	}
+
+	// Unseal file
+	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Backup)
+	if err != nil {
+		logger.Error("Fatal error in creating tee structure: %s", err)
+		return
+	}
+	tee.Unseal(forUnsealPath)
 }

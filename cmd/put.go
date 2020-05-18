@@ -71,6 +71,7 @@ var putWsCmd = &wscmd.WsCmd{
 		if chainAccount != "" {
 			logger.Info("Remote mode, chain account: %s", chainAccount)
 
+			// TODO: use PutReturnMessage
 			if err := putProcesser.Split(true); err != nil {
 				putProcesser.DealErrorForRemote(err)
 				return PutReturnMessage{

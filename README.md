@@ -36,7 +36,16 @@ go build
 ./karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store
 ```
 
+// TODO
+## Websocket interface (for user)
+### Put /api/v0/cmd/put
+### Get /api/v0/cmd/get
+
+
 ## Websocket interface (not for user)
+
+// TODO
+### Get /api/v0/get
 
 ### Put /api/v0/put
 
