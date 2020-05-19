@@ -23,7 +23,7 @@ type GetReturnMessage struct {
 
 func init() {
 	getWsCmd.Cmd.Flags().String("chain_account", "", "get file from the karst node with this 'chain_account' by storage market")
-	getWsCmd.Cmd.Flags().String("file_path", "", "the file will be saved in this path, default value is current directory")
+	getWsCmd.Cmd.Flags().String("file_path", ".", "the file will be saved in this path, default value is current directory")
 	getWsCmd.ConnectCmdAndWs()
 	rootCmd.AddCommand(getWsCmd.Cmd)
 }

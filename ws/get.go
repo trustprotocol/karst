@@ -9,6 +9,7 @@ import (
 	"karst/tee"
 	"karst/util"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 
@@ -130,14 +131,15 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, _, err = tee.Unseal(forUnsealPath); err != nil {
+	_, unsealedFilepath, err := tee.Unseal(forUnsealPath)
+	if err != nil {
 		logger.Error("Tee unseal error: %s", err)
 		return
 	}
 
 	// Transfer data
 	for index := range putInfo.MerkleTree.Links {
-		pieceFilePath := filepath.FromSlash(forUnsealPath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putInfo.MerkleTree.Links[index].Hash)
+		pieceFilePath := filepath.FromSlash(unsealedFilepath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putInfo.MerkleTree.Links[index].Hash)
 		fileBytes, err := ioutil.ReadFile(pieceFilePath)
 		if err != nil {
 			logger.Error("Read file '%s' filed: %s", pieceFilePath, err)
@@ -150,4 +152,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	// Remove temp file
+	os.RemoveAll(unsealedFilepath)
 }

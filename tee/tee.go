@@ -16,6 +16,12 @@ type sealedMessage struct {
 	Path   string
 }
 
+type unsealBackMessage struct {
+	Status int
+	Body   string
+	Path   string
+}
+
 type Tee struct {
 	BaseUrl string
 	Backup  string
@@ -122,5 +128,14 @@ func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) 
 	}
 	logger.Debug("Recv: %s", message)
 
-	return nil, "", nil
+	var unsealBackMes unsealBackMessage
+	err = json.Unmarshal([]byte(message), &unsealBackMes)
+	if err != nil {
+		return nil, "", fmt.Errorf("Unmarshal unseal back message failed: %s", err)
+	}
+	if unsealBackMes.Status != 200 {
+		return nil, "", fmt.Errorf("Unseal failed: %s", unsealBackMes.Body)
+	}
+
+	return nil, unsealBackMes.Path, nil
 }
