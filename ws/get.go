@@ -93,33 +93,21 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get file information from db
-	sealedHashBytes, err := db.Get([]byte(getPermissionMsg.FileHash), nil)
-	if err != nil {
-		logger.Error("Fatal error in getting sealed hash: %s", err)
-		return
-	}
-
-	putInfoBytes, err := db.Get([]byte(sealedHashBytes), nil)
-	if err != nil {
-		logger.Error("Fatal error in getting sealed hash: %s", err)
-		return
-	}
-
-	putInfo := model.PutInfo{}
-	if err = json.Unmarshal(putInfoBytes, &putInfo); err != nil {
-		logger.Error("Fatal error in getting put information: %s", err)
+	fileInfo := model.GetFileInfoFromDb(getPermissionMsg.FileHash, db)
+	if fileInfo == nil {
+		logger.Error("Fatal error in getting file information from db: %s", err)
 		return
 	}
 
 	// Send back
 	getPermissionBackMsg.Status = 200
 	getPermissionBackMsg.Info = fmt.Sprintf("have permission to retrieve this file '%s'", getPermissionMsg.FileHash)
-	getPermissionBackMsg.PieceNum = putInfo.MerkleTreeSealed.LinksNum
+	getPermissionBackMsg.PieceNum = fileInfo.MerkleTreeSealed.LinksNum
 	getPermissionBackMsg.sendBack(c)
 
 	// TODO: Avoid duplicate files
-	forUnsealPath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + putInfo.MerkleTreeSealed.Hash)
-	if err = util.CpDir(putInfo.StoredPath, forUnsealPath); err != nil {
+	forUnsealPath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + fileInfo.MerkleTreeSealed.Hash)
+	if err = util.CpDir(fileInfo.StoredPath, forUnsealPath); err != nil {
 		logger.Error("Fatal error in coping sealed file: %s", err)
 		return
 	}
@@ -138,8 +126,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Transfer data
-	for index := range putInfo.MerkleTree.Links {
-		pieceFilePath := filepath.FromSlash(unsealedFilepath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putInfo.MerkleTree.Links[index].Hash)
+	for index := range fileInfo.MerkleTree.Links {
+		pieceFilePath := filepath.FromSlash(unsealedFilepath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + fileInfo.MerkleTree.Links[index].Hash)
 		fileBytes, err := ioutil.ReadFile(pieceFilePath)
 		if err != nil {
 			logger.Error("Read file '%s' filed: %s", pieceFilePath, err)

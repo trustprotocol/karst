@@ -147,13 +147,13 @@ func put(w http.ResponseWriter, r *http.Request) {
 		pieceFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putPermissionMsg.MerkleTree.Links[index].Hash)
 
 		// Write to disk
-		nodeFile, err := os.Create(pieceFileName)
+		pieceFile, err := os.Create(pieceFileName)
 		if err != nil {
 			logger.Error("Fatal error in creating the part '%s': %s", pieceFileName, err)
 			os.RemoveAll(fileStorePath)
 			return
 		}
-		nodeFile.Close()
+		pieceFile.Close()
 
 		if err = ioutil.WriteFile(pieceFileName, message, os.ModeAppend); err != nil {
 			logger.Error("Fatal error in writing the part '%s': %s", pieceFileName, err)
@@ -162,13 +162,19 @@ func put(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = db.Put([]byte(putPermissionMsg.MerkleTree.Hash), nil, nil); err != nil {
-		logger.Error("Fatal error in putting information into leveldb: %s", err)
-		os.RemoveAll(fileStorePath)
-		return
+	// Seal file
+	fileInfo, err := sealFile(putPermissionMsg.MerkleTree, fileStorePath)
+	if err != nil {
+		logger.Error("%s", err)
+		fileInfo.ClearFile()
+		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 500 }"))
+		if err != nil {
+			logger.Error("Write err: %s", err)
+		}
 	}
-	// Asynchronous seal
-	go sealFile(putPermissionMsg.MerkleTree, fileStorePath)
+
+	// Save to db
+	fileInfo.SaveToDb(db)
 
 	// Send success message
 	err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
@@ -178,54 +184,27 @@ func put(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Receiving file successfully in %s !", time.Since(timeStart))
 }
 
-func sealFile(merkleTree *merkletree.MerkleTreeNode, fileStorePath string) {
+func sealFile(merkleTree *merkletree.MerkleTreeNode, fileStorePath string) (*model.FileInfo, error) {
+	// Create file information class
+	fileInfo := &model.FileInfo{
+		StoredPath:       fileStorePath,
+		MerkleTree:       merkleTree,
+		MerkleTreeSealed: nil,
+	}
+
 	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Backup)
 	if err != nil {
-		logger.Error("Fatal error in creating tee structure: %s", err)
-		os.RemoveAll(fileStorePath)
-		if err = db.Delete([]byte(merkleTree.Hash), nil); err != nil {
-			logger.Error("Fatal error in removing leveldb: %s", err)
-		}
-		return
+		return fileInfo, fmt.Errorf("Fatal error in creating tee structure: %s", err)
 	}
 
 	// Send merkle tree to TEE for sealing
-	merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(fileStorePath, merkleTree)
+	merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(fileInfo.StoredPath, fileInfo.MerkleTree)
 	if err != nil {
-		logger.Error("Fatal error in sealing file '%s' : %s", merkleTree.Hash, err)
-		os.RemoveAll(fileStorePath)
-		os.RemoveAll(fileStorePathInSealedHash)
-		if err = db.Delete([]byte(merkleTree.Hash), nil); err != nil {
-			logger.Error("Fatal error in removing leveldb: %s", err)
-		}
-		return
-	}
-
-	// Store sealed merkle tree info to db
-	if err = db.Put([]byte(merkleTree.Hash), []byte(merkleTreeSealed.Hash), nil); err != nil {
-		logger.Error("Fatal error in putting information into leveldb: %s", err)
-		os.RemoveAll(fileStorePath)
-		os.RemoveAll(fileStorePathInSealedHash)
-		if err = db.Delete([]byte(merkleTree.Hash), nil); err != nil {
-			logger.Error("Fatal error in removing leveldb: %s", err)
-		}
-		return
+		return fileInfo, fmt.Errorf("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 	} else {
-		putInfo := &model.PutInfo{
-			MerkleTree:       merkleTree,
-			MerkleTreeSealed: merkleTreeSealed,
-			StoredPath:       fileStorePathInSealedHash,
-		}
-
-		putInfoBytes, _ := json.Marshal(putInfo)
-		if err = db.Put([]byte(merkleTreeSealed.Hash), putInfoBytes, nil); err != nil {
-			logger.Error("Fatal error in putting information into leveldb: %s", err)
-			os.RemoveAll(fileStorePath)
-			os.RemoveAll(fileStorePathInSealedHash)
-			if err = db.Delete([]byte(merkleTree.Hash), nil); err != nil {
-				logger.Error("Fatal error in removing leveldb: %s", err)
-			}
-			return
-		}
+		fileInfo.MerkleTreeSealed = merkleTreeSealed
+		fileInfo.StoredPath = fileStorePathInSealedHash
 	}
+
+	return fileInfo, nil
 }
