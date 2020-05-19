@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"karst/config"
 	"karst/logger"
+	"karst/util"
 	"karst/ws"
 	"karst/wscmd"
 	"os"
@@ -161,7 +162,12 @@ func GetFromRemoteKarst(fileHash string, filePath string, remoteChainAccount str
 	}
 
 	// Create file
-	fd, err := os.OpenFile(filepath.FromSlash(filePath+"/"+fileHash), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	fileName := filepath.FromSlash(filePath + "/" + fileHash)
+	if util.IsDirOrFileExist(fileName) {
+		os.Remove(fileName)
+	}
+
+	fd, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return GetReturnMessage{
 			Info:   err.Error(),

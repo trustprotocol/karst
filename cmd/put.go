@@ -11,8 +11,6 @@ import (
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
-	"karst/model"
-	"karst/tee"
 	"karst/util"
 	"karst/ws"
 	"karst/wscmd"
@@ -66,72 +64,44 @@ var putWsCmd = &wscmd.WsCmd{
 		timeStart := time.Now()
 		putProcesser := NewPutProcesser(args["file_path"], wsc.Db, wsc.Cfg)
 
-		// Remote mode or local mode
+		// Check chain account
 		chainAccount := args["chain_account"]
 		if chainAccount != "" {
-			logger.Info("Remote mode, chain account: %s", chainAccount)
-
-			// TODO: use PutReturnMessage
-			if err := putProcesser.Split(true); err != nil {
-				putProcesser.DealErrorForRemote(err)
-				return PutReturnMessage{
-					Info:   err.Error(),
-					Status: 500,
-				}
-			} else {
-				merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
-				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
-			}
-
-			if err := putProcesser.SendTo(chainAccount); err != nil {
-				putProcesser.DealErrorForRemote(err)
-				return PutReturnMessage{
-					Info:   err.Error(),
-					Status: 500,
-				}
-			}
-
-			returnInfo := fmt.Sprintf("Remotely put '%s' successfully in %s ! It root hash is '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MerkleTree.Hash)
-			logger.Info(returnInfo)
+			returnInfo := "Please provide a chain account"
+			logger.Error(returnInfo)
 			return PutReturnMessage{
-				Status: 200,
+				Status: 400,
 				Info:   returnInfo,
+			}
+		}
+
+		logger.Info("Try to save file to chain account: %s", chainAccount)
+
+		// TODO: use PutReturnMessage
+		if err := putProcesser.Split(true); err != nil {
+			putProcesser.DealError(err)
+			return PutReturnMessage{
+				Info:   err.Error(),
+				Status: 500,
 			}
 		} else {
-			// TODO: Local put use reserve seal interface of TEE
-			logger.Info("Local mode")
+			merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
+			logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
+		}
 
-			// Split file
-			if err := putProcesser.Split(false); err != nil {
-				putProcesser.DealErrorForLocal(err)
-				return PutReturnMessage{
-					Info:   err.Error(),
-					Status: 500,
-				}
-			} else {
-				merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
-				logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
-			}
-
-			// Seal file
-			if err := putProcesser.SealFile(); err != nil {
-				putProcesser.DealErrorForLocal(err)
-				return PutReturnMessage{
-					Info:   err.Error(),
-					Status: 500,
-				}
-			} else {
-				merkleTreeSealedBytes, _ := json.Marshal(putProcesser.MerkleTreeSealed)
-				logger.Debug("Sealed merkleTree is %s", string(merkleTreeSealedBytes))
-			}
-
-			// Log results
-			returnInfo := fmt.Sprintf("Locally put '%s' successfully in %s ! It root hash is '%s' -- '%s'.", args["file"], time.Since(timeStart), putProcesser.MerkleTree.Hash, putProcesser.MerkleTreeSealed.Hash)
-			logger.Info(returnInfo)
+		if err := putProcesser.SendTo(chainAccount); err != nil {
+			putProcesser.DealError(err)
 			return PutReturnMessage{
-				Status: 200,
-				Info:   returnInfo,
+				Info:   err.Error(),
+				Status: 500,
 			}
+		}
+
+		returnInfo := fmt.Sprintf("Put '%s' successfully in %s ! It root hash is '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MerkleTree.Hash)
+		logger.Info(returnInfo)
+		return PutReturnMessage{
+			Status: 200,
+			Info:   returnInfo,
 		}
 	},
 }
@@ -356,85 +326,13 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	return err
 }
 
-func (putProcesser *PutProcesser) SealFile() error {
-	// New TEE
-	tee, err := tee.NewTee(putProcesser.Config.TeeBaseUrl, putProcesser.Config.Backup)
-	if err != nil {
-		return fmt.Errorf("Fatal error in creating tee structure: %s", err)
-	}
-
-	// Send merkle tree to TEE for sealing
-	merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(putProcesser.FileStorePathInHash, putProcesser.MerkleTree)
-	if err != nil {
-		return fmt.Errorf("Fatal error in sealing file '%s' : %s", putProcesser.MerkleTree.Hash, err)
-	} else {
-		putProcesser.FileStorePathInSealedHash = fileStorePathInSealedHash
-	}
-
-	// Store sealed merkle tree info to db
-	if err = putProcesser.Db.Put([]byte(putProcesser.MerkleTree.Hash), []byte(merkleTreeSealed.Hash), nil); err != nil {
-		return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
-	} else {
-		putInfo := &model.PutInfo{
-			InputfilePath:    putProcesser.InputfilePath,
-			Md5:              putProcesser.Md5,
-			MerkleTree:       putProcesser.MerkleTree,
-			MerkleTreeSealed: merkleTreeSealed,
-			StoredPath:       putProcesser.FileStorePathInSealedHash,
-		}
-
-		putInfoBytes, _ := json.Marshal(putInfo)
-		if err = putProcesser.Db.Put([]byte(merkleTreeSealed.Hash), putInfoBytes, nil); err != nil {
-			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
-		} else {
-			putProcesser.MerkleTreeSealed = merkleTreeSealed
-		}
-	}
-
-	return nil
-}
-
-func (putProcesser *PutProcesser) DealErrorForRemote(err error) {
+func (putProcesser *PutProcesser) DealError(err error) {
 	if putProcesser.FileStorePathInBegin != "" {
 		os.RemoveAll(putProcesser.FileStorePathInBegin)
 	}
 
 	if putProcesser.FileStorePathInHash != "" {
 		os.RemoveAll(putProcesser.FileStorePathInHash)
-	}
-
-	logger.Error("%s", err)
-}
-
-func (putProcesser *PutProcesser) DealErrorForLocal(err error) {
-	if putProcesser.FileStorePathInBegin != "" {
-		os.RemoveAll(putProcesser.FileStorePathInBegin)
-	}
-
-	if putProcesser.FileStorePathInHash != "" {
-		os.RemoveAll(putProcesser.FileStorePathInHash)
-	}
-
-	if putProcesser.FileStorePathInSealedHash != "" {
-		os.RemoveAll(putProcesser.FileStorePathInSealedHash)
-	}
-
-	if putProcesser.Md5 != "" {
-		if err := putProcesser.Db.Delete([]byte(putProcesser.Md5), nil); err != nil {
-			logger.Error("%s", err)
-		}
-	}
-
-	if putProcesser.MerkleTree != nil {
-		if err := putProcesser.Db.Delete([]byte(putProcesser.MerkleTree.Hash), nil); err != nil {
-			logger.Error("%s", err)
-		}
-	}
-
-	if putProcesser.MerkleTreeSealed != nil {
-		if err := putProcesser.Db.Delete([]byte(putProcesser.MerkleTreeSealed.Hash), nil); err != nil {
-			logger.Error("%s", err)
-		}
 	}
 
 	logger.Error("%s", err)
