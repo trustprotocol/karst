@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
+	"karst/model"
 	"karst/util"
 	"karst/ws"
 	"karst/wscmd"
@@ -23,7 +22,6 @@ import (
 	"github.com/cheggaaa/pb"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type PutReturnMessage struct {
@@ -62,8 +60,6 @@ var putWsCmd = &wscmd.WsCmd{
 	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
-		putProcesser := NewPutProcesser(args["file_path"], wsc.Db, wsc.Cfg)
-
 		// Check chain account
 		chainAccount := args["chain_account"]
 		if chainAccount == "" {
@@ -76,28 +72,29 @@ var putWsCmd = &wscmd.WsCmd{
 		}
 
 		logger.Info("Try to save file to chain account: %s", chainAccount)
-
-		// TODO: use PutReturnMessage
-		if err := putProcesser.Split(true); err != nil {
-			putProcesser.DealError(err)
+		fileInfo, err := split(args["file_path"], wsc.Cfg)
+		if err != nil {
+			logger.Error("%s", err)
+			fileInfo.ClearFile()
 			return PutReturnMessage{
 				Info:   err.Error(),
 				Status: 500,
 			}
 		} else {
-			merkleTreeBytes, _ := json.Marshal(putProcesser.MerkleTree)
+			merkleTreeBytes, _ := json.Marshal(fileInfo.MerkleTree)
 			logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 		}
 
-		if err := putProcesser.SendTo(chainAccount); err != nil {
-			putProcesser.DealError(err)
+		if err = sendTo(fileInfo, chainAccount, wsc.Cfg); err != nil {
+			logger.Error("%s", err)
+			fileInfo.ClearFile()
 			return PutReturnMessage{
 				Info:   err.Error(),
 				Status: 500,
 			}
 		}
 
-		returnInfo := fmt.Sprintf("Put '%s' successfully in %s ! It root hash is '%s'.", args["file_path"], time.Since(timeStart), putProcesser.MerkleTree.Hash)
+		returnInfo := fmt.Sprintf("Put '%s' successfully in %s ! It root hash is '%s'.", args["file_path"], time.Since(timeStart), fileInfo.MerkleTree.Hash)
 		logger.Info(returnInfo)
 		return PutReturnMessage{
 			Status: 200,
@@ -106,102 +103,51 @@ var putWsCmd = &wscmd.WsCmd{
 	},
 }
 
-type PutProcesser struct {
-	InputfilePath             string
-	Db                        *leveldb.DB
-	Config                    *config.Configuration
-	FileStorePathInBegin      string
-	Md5                       string
-	FileStorePathInHash       string
-	MerkleTree                *merkletree.MerkleTreeNode
-	FileStorePathInSealedHash string
-	MerkleTreeSealed          *merkletree.MerkleTreeNode
-}
-
-func NewPutProcesser(inputfilePath string, db *leveldb.DB, Config *config.Configuration) *PutProcesser {
-	return &PutProcesser{
-		InputfilePath: inputfilePath,
-		Config:        Config,
-		Db:            db,
+func split(inputfilePath string, cfg *config.Configuration) (*model.FileInfo, error) {
+	// Create file information class
+	fileInfo := &model.FileInfo{
+		StoredPath:       "",
+		MerkleTree:       nil,
+		MerkleTreeSealed: nil,
 	}
-}
 
-// Locally split, duplicate files are not allowed; Remotely split, duplicate files not allowed
-func (putProcesser *PutProcesser) Split(isRemote bool) error {
 	// Open file
-	file, err := os.Open(putProcesser.InputfilePath)
+	file, err := os.Open(inputfilePath)
 	if err != nil {
-		return fmt.Errorf("Fatal error in opening '%s': %s", putProcesser.InputfilePath, err)
+		return fileInfo, fmt.Errorf("Fatal error in opening '%s': %s", inputfilePath, err)
 	}
 	defer file.Close()
 
-	fileBasePath := ""
-	if isRemote {
-		fileBasePath = putProcesser.Config.KarstPaths.TempFilesPath
-		// Create md5 file directory
-		fileStorePathInBegin := filepath.FromSlash(fileBasePath + "/" + strconv.FormatInt(time.Now().UnixNano(), 10))
-		if err := os.MkdirAll(fileStorePathInBegin, os.ModePerm); err != nil {
-			return fmt.Errorf("Fatal error in creating file store directory: %s", err)
-		} else {
-			putProcesser.FileStorePathInBegin = fileStorePathInBegin
-		}
-
+	// Create file directory
+	fileStorePathInBegin := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + strconv.FormatInt(time.Now().UnixNano(), 10))
+	if err := os.MkdirAll(fileStorePathInBegin, os.ModePerm); err != nil {
+		return fileInfo, fmt.Errorf("Fatal error in creating file store directory: %s", err)
 	} else {
-		fileBasePath = putProcesser.Config.KarstPaths.FilesPath
-		// Check md5
-		md5hash := md5.New()
-		if _, err = io.Copy(md5hash, file); err != nil {
-			return fmt.Errorf("Fatal error in calculating md5 of '%s': %s", putProcesser.InputfilePath, err)
-		}
-		md5hashString := hex.EncodeToString(md5hash.Sum(nil))
-
-		if ok, _ := putProcesser.Db.Has([]byte(md5hashString), nil); ok {
-			return fmt.Errorf("This '%s' has already been stored, file md5 is: %s", putProcesser.InputfilePath, md5hashString)
-		}
-
-		// Create md5 file directory
-		fileStorePathInMd5 := filepath.FromSlash(fileBasePath + "/" + md5hashString + "_" + string(time.Now().UnixNano()))
-		if err := os.MkdirAll(fileStorePathInMd5, os.ModePerm); err != nil {
-			return fmt.Errorf("Fatal error in creating file store directory: %s", err)
-		} else {
-			putProcesser.FileStorePathInBegin = fileStorePathInMd5
-		}
-
-		// Save md5 into database
-		if err = putProcesser.Db.Put([]byte(md5hashString), nil, nil); err != nil {
-			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
-		} else {
-			putProcesser.Md5 = md5hashString
-		}
-
-		// Go back to file beginning and get file info
-		if _, err = file.Seek(0, 0); err != nil {
-			return fmt.Errorf("Fatal error in seek file '%s': %s", putProcesser.InputfilePath, err)
-		}
+		fileInfo.StoredPath = fileStorePathInBegin
 	}
 
-	fileInfo, err := file.Stat()
+	fileStat, err := file.Stat()
 	if err != nil {
-		return fmt.Errorf("Fatal error in getting '%s' information: %s", putProcesser.InputfilePath, err)
+		return fileInfo, fmt.Errorf("Fatal error in getting '%s' information: %s", inputfilePath, err)
 	}
 
 	// Split file
-	totalPartsNum := uint64(math.Ceil(float64(fileInfo.Size()) / float64(putProcesser.Config.FilePartSize)))
+	totalPartsNum := uint64(math.Ceil(float64(fileStat.Size()) / float64(cfg.FilePartSize)))
 	partHashs := make([][]byte, 0)
 	partSizes := make([]uint64, 0)
 
-	logger.Info("Splitting '%s' to %d parts.", putProcesser.InputfilePath, totalPartsNum)
+	logger.Info("Splitting '%s' to %d parts.", inputfilePath, totalPartsNum)
 	bar := pb.StartNew(int(totalPartsNum))
 	for i := uint64(0); i < totalPartsNum; i++ {
 		// Bar
 		bar.Increment()
 
 		// Get part of file
-		partSize := int(math.Min(float64(putProcesser.Config.FilePartSize), float64(fileInfo.Size()-int64(i*putProcesser.Config.FilePartSize))))
+		partSize := int(math.Min(float64(cfg.FilePartSize), float64(fileStat.Size()-int64(i*cfg.FilePartSize))))
 		partBuffer := make([]byte, partSize)
 
 		if _, err = file.Read(partBuffer); err != nil {
-			return fmt.Errorf("Fatal error in getting part of '%s': %s", putProcesser.InputfilePath, err)
+			return fileInfo, fmt.Errorf("Fatal error in getting part of '%s': %s", inputfilePath, err)
 		}
 
 		// Get part information
@@ -209,50 +155,42 @@ func (putProcesser *PutProcesser) Split(isRemote bool) error {
 		partHashs = append(partHashs, partHash[:])
 		partSizes = append(partSizes, uint64(partSize))
 		partHashString := hex.EncodeToString(partHash[:])
-		partFileName := filepath.FromSlash(putProcesser.FileStorePathInBegin + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
+		partFileName := filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
 
 		// Write to disk
 		partFile, err := os.Create(partFileName)
 		if err != nil {
-			return fmt.Errorf("Fatal error in creating the part '%s' of '%s': %s", partFileName, putProcesser.InputfilePath, err)
+			return fileInfo, fmt.Errorf("Fatal error in creating the part '%s' of '%s': %s", partFileName, inputfilePath, err)
 		}
 		partFile.Close()
 
 		if err = ioutil.WriteFile(partFileName, partBuffer, os.ModeAppend); err != nil {
-			return fmt.Errorf("Fatal error in writing the part '%s' of '%s': %s", partFileName, putProcesser.InputfilePath, err)
+			return fileInfo, fmt.Errorf("Fatal error in writing the part '%s' of '%s': %s", partFileName, inputfilePath, err)
 		}
 	}
 	bar.Finish()
 
 	// Rename folder
 	fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
-	fileStorePathInHash := filepath.FromSlash(fileBasePath + "/" + fileMerkleTree.Hash)
+	fileStorePathInHash := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + fileMerkleTree.Hash)
 
 	if !util.IsDirOrFileExist(fileStorePathInHash) {
-		if err = os.Rename(putProcesser.FileStorePathInBegin, fileStorePathInHash); err != nil {
-			return fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", putProcesser.FileStorePathInBegin, fileStorePathInHash, err)
+		if err = os.Rename(fileInfo.StoredPath, fileStorePathInHash); err != nil {
+			return fileInfo, fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", fileInfo.StoredPath, fileStorePathInHash, err)
 		} else {
-			putProcesser.FileStorePathInHash = fileStorePathInHash
+			fileInfo.StoredPath = fileStorePathInHash
 		}
 	} else {
-		putProcesser.FileStorePathInHash = fileStorePathInHash
-		os.RemoveAll(putProcesser.FileStorePathInBegin)
+		os.RemoveAll(fileInfo.StoredPath)
+		fileInfo.StoredPath = fileStorePathInHash
 	}
 
-	if !isRemote {
-		if err = putProcesser.Db.Put([]byte(fileMerkleTree.Hash), nil, nil); err != nil {
-			return fmt.Errorf("Fatal error in putting information into leveldb: %s", err)
-		} else {
-			putProcesser.MerkleTree = fileMerkleTree
-		}
-	} else {
-		putProcesser.MerkleTree = fileMerkleTree
-	}
+	fileInfo.MerkleTree = fileMerkleTree
 
-	return nil
+	return fileInfo, nil
 }
 
-func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
+func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Configuration) error {
 	// TODO: Get address from chain
 	karstPutAddress := "ws://127.0.0.1:17000/api/v0/put"
 	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
@@ -267,9 +205,9 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	defer c.Close()
 
 	putPermissionMsg := ws.PutPermissionMessage{
-		ChainAccount:   putProcesser.Config.ChainAccount,
+		ChainAccount:   cfg.ChainAccount,
 		StoreOrderHash: storeOrderHash,
-		MerkleTree:     putProcesser.MerkleTree,
+		MerkleTree:     fileInfo.MerkleTree,
 	}
 
 	putPermissionMsgBytes, err := json.Marshal(putPermissionMsg)
@@ -298,11 +236,11 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	}
 
 	// Send nodes of file
-	logger.Info("Send '%s' file to '%s' karst node, the number of pieces of this file is %d", putProcesser.MerkleTree.Hash, chainAccount, putProcesser.MerkleTree.LinksNum)
-	bar := pb.StartNew(int(putProcesser.MerkleTree.LinksNum))
-	for index := range putProcesser.MerkleTree.Links {
+	logger.Info("Send '%s' file to '%s' karst node, the number of pieces of this file is %d", fileInfo.MerkleTree.Hash, otherChainAccount, fileInfo.MerkleTree.LinksNum)
+	bar := pb.StartNew(int(fileInfo.MerkleTree.LinksNum))
+	for index := range fileInfo.MerkleTree.Links {
 		bar.Increment()
-		pieceFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MerkleTree.Links[index].Hash)
+		pieceFilePath := filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + fileInfo.MerkleTree.Links[index].Hash)
 
 		fileBytes, err := ioutil.ReadFile(pieceFilePath)
 		if err != nil {
@@ -320,20 +258,8 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	if err != nil {
 		return err
 	}
-	os.RemoveAll(putProcesser.FileStorePathInHash)
+	os.RemoveAll(fileInfo.StoredPath)
 	logger.Debug("Store request return: %s", message)
 
 	return err
-}
-
-func (putProcesser *PutProcesser) DealError(err error) {
-	if putProcesser.FileStorePathInBegin != "" {
-		os.RemoveAll(putProcesser.FileStorePathInBegin)
-	}
-
-	if putProcesser.FileStorePathInHash != "" {
-		os.RemoveAll(putProcesser.FileStorePathInHash)
-	}
-
-	logger.Error("%s", err)
 }
