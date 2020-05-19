@@ -8,6 +8,7 @@ import (
 	"karst/ws"
 	"karst/wscmd"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -160,7 +161,7 @@ func GetFromRemoteKarst(fileHash string, filePath string, remoteChainAccount str
 	}
 
 	// Create file
-	fd, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	fd, err := os.OpenFile(filepath.FromSlash(filePath+"/"+fileHash), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return GetReturnMessage{
 			Info:   err.Error(),
