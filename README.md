@@ -14,8 +14,8 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
   "backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
   "base_url": "0.0.0.0:17000",
   "log_level": "debug",
-  "tee_base_url": "127.0.0.1:12222/api/v0"
-  "chian_account": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA"
+  "tee_base_url": "127.0.0.1:12222/api/v0",
+  "chian_account": "5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX"
 }
 ```
 
@@ -105,6 +105,11 @@ Failed return example:
 	"info": "xxxx",
 	"piece_num": 0
 }
+```
+
+#### Send piece data (repeatable)
+```
+piece's data of the file (binary)
 ```
 
 ### Put /api/v0/put
@@ -224,9 +229,9 @@ Failed return example:
 }
 ```
 
-#### Send node data (repeatable)
+#### Send piece data (repeatable)
 ```
-node's data of the file (binary)
+piece's data of the file (binary)
 ```
 
 Success return:
