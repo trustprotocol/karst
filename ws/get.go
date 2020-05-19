@@ -3,12 +3,14 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"karst/logger"
 	"karst/model"
 	"karst/tee"
 	"karst/util"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 )
@@ -30,8 +32,9 @@ func newGetPermissionMessage(msg []byte) (*GetPermissionMessage, error) {
 }
 
 type GetPermissionBackMessage struct {
-	Status int    `json:"status"`
-	Info   string `json:"info"`
+	Status   int    `json:"status"`
+	Info     string `json:"info"`
+	PieceNum uint64 `json:"piece_num"`
 }
 
 func (gpb *GetPermissionBackMessage) sendBack(c *websocket.Conn) {
@@ -79,6 +82,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("Get file message: %s", msg)
 
+	// TODO: Use get file message to determine whether to transfer data
 	// Check if file exists
 	if ok, _ := db.Has([]byte(getPermissionMsg.FileHash), nil); !ok {
 		getPermissionBackMsg.Info = fmt.Sprintf("This file '%s' isn't stored in this node", getPermissionMsg.FileHash)
@@ -87,16 +91,16 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Use get file message to determine whether to transfer data
-	// Send back
-	getPermissionBackMsg.Status = 200
-	getPermissionBackMsg.Info = fmt.Sprintf("have permission to retrieve this file '%s'", getPermissionMsg.FileHash)
-	getPermissionBackMsg.sendBack(c)
-
 	// Get file information from db
-	putInfoBytes, err := db.Get([]byte(getPermissionMsg.FileHash), nil)
+	sealedHashBytes, err := db.Get([]byte(getPermissionMsg.FileHash), nil)
 	if err != nil {
-		logger.Error("Fatal error in creating tee structure: %s", err)
+		logger.Error("Fatal error in getting sealed hash: %s", err)
+		return
+	}
+
+	putInfoBytes, err := db.Get([]byte(sealedHashBytes), nil)
+	if err != nil {
+		logger.Error("Fatal error in getting sealed hash: %s", err)
 		return
 	}
 
@@ -106,10 +110,15 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Send back
+	getPermissionBackMsg.Status = 200
+	getPermissionBackMsg.Info = fmt.Sprintf("have permission to retrieve this file '%s'", getPermissionMsg.FileHash)
+	getPermissionBackMsg.PieceNum = putInfo.MerkleTreeSealed.LinksNum
+	getPermissionBackMsg.sendBack(c)
+
 	// TODO: Avoid duplicate files
-	sealedPath := filepath.FromSlash(putInfo.StoredPath + "/" + putInfo.MerkleTreeSealed.Hash)
 	forUnsealPath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + putInfo.MerkleTreeSealed.Hash)
-	if err = util.CpDir(sealedPath, forUnsealPath); err != nil {
+	if err = util.CpDir(putInfo.StoredPath, forUnsealPath); err != nil {
 		logger.Error("Fatal error in coping sealed file: %s", err)
 		return
 	}
@@ -120,5 +129,25 @@ func get(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Fatal error in creating tee structure: %s", err)
 		return
 	}
-	tee.Unseal(forUnsealPath)
+
+	if _, _, err = tee.Unseal(forUnsealPath); err != nil {
+		logger.Error("Tee unseal error: %s", err)
+		return
+	}
+
+	// Transfer data
+	for index := range putInfo.MerkleTree.Links {
+		pieceFilePath := filepath.FromSlash(forUnsealPath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putInfo.MerkleTree.Links[index].Hash)
+		fileBytes, err := ioutil.ReadFile(pieceFilePath)
+		if err != nil {
+			logger.Error("Read file '%s' filed: %s", pieceFilePath, err)
+			return
+		}
+
+		err = c.WriteMessage(websocket.BinaryMessage, fileBytes)
+		if err != nil {
+			logger.Error("Write message error: %s", err)
+			return
+		}
+	}
 }

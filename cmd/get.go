@@ -7,8 +7,10 @@ import (
 	"karst/logger"
 	"karst/ws"
 	"karst/wscmd"
+	"os"
 	"time"
 
+	"github.com/cheggaaa/pb"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -79,9 +81,9 @@ var getWsCmd = &wscmd.WsCmd{
 		}
 
 		// Get file from other karst node
-		getReturnMsg, err := GetFromRemoteKarst(fileHash, chainAccount, wsc.Cfg)
-		if err != nil {
-			logger.Error("Get from remote karst failed, error is: %s", err)
+		getReturnMsg := GetFromRemoteKarst(fileHash, args["file_path"], chainAccount, wsc.Cfg)
+		if getReturnMsg.Status != 200 {
+			logger.Error("Get from remote karst failed, error is: %s", getReturnMsg.Info)
 			return getReturnMsg
 		} else {
 			return GetReturnMessage{
@@ -92,7 +94,7 @@ var getWsCmd = &wscmd.WsCmd{
 	},
 }
 
-func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.Configuration) (GetReturnMessage, error) {
+func GetFromRemoteKarst(fileHash string, filePath string, remoteChainAccount string, cfg *config.Configuration) GetReturnMessage {
 	// TODO: Get address from chain by using 'remoteChainAccount'
 	karstGetAddress := "ws://127.0.0.1:17000/api/v0/get"
 	// TODO: Get store order hash from chain by using 'fileHash' and cfg.ChainAccount
@@ -105,7 +107,7 @@ func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.
 		return GetReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
-		}, err
+		}
 	}
 	defer c.Close()
 
@@ -120,7 +122,7 @@ func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.
 		return GetReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
-		}, err
+		}
 	}
 
 	logger.Debug("Get permission message is: %s", string(getPermissionMsgBytes))
@@ -128,7 +130,7 @@ func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.
 		return GetReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
-		}, err
+		}
 	}
 
 	// Read back message
@@ -137,9 +139,70 @@ func GetFromRemoteKarst(fileHash string, remoteChainAccount string, cfg *config.
 		return GetReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
-		}, err
+		}
 	}
+
+	getPermissionBackMsg := ws.GetPermissionBackMessage{}
+	if err = json.Unmarshal(message, &getPermissionBackMsg); err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
 	logger.Debug("Get permission request back: %s", message)
 
-	return GetReturnMessage{}, nil
+	if getPermissionBackMsg.Status != 200 {
+		return GetReturnMessage{
+			Info:   getPermissionBackMsg.Info,
+			Status: getPermissionBackMsg.Status,
+		}
+	}
+
+	// Create file
+	fd, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return GetReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+	defer fd.Close()
+
+	// Transfer data
+	logger.Info("Getting %d pieces from karst node.", getPermissionBackMsg.PieceNum)
+	bar := pb.StartNew(int(getPermissionBackMsg.PieceNum))
+	for i := uint64(0); i < getPermissionBackMsg.PieceNum; i++ {
+		// Bar
+		bar.Increment()
+
+		// Read node of file
+		mt, message, err := c.ReadMessage()
+		if err != nil {
+			return GetReturnMessage{
+				Info:   err.Error(),
+				Status: 500,
+			}
+		}
+
+		if mt != websocket.BinaryMessage {
+			return GetReturnMessage{
+				Info:   "Wrong message type",
+				Status: 500,
+			}
+		}
+
+		if _, err = fd.Write(message); err != nil {
+			return GetReturnMessage{
+				Info:   err.Error(),
+				Status: 500,
+			}
+		}
+	}
+	bar.Finish()
+
+	return GetReturnMessage{
+		Info:   "",
+		Status: 200,
+	}
 }

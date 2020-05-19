@@ -139,24 +139,24 @@ func put(w http.ResponseWriter, r *http.Request) {
 
 		hashBytes := sha256.Sum256(message)
 		if putPermissionMsg.MerkleTree.Links[index].Hash != hex.EncodeToString(hashBytes[:]) {
-			logger.Error("Receive wrong node, wrong hash is %s, expected hash is %s", hex.EncodeToString(hashBytes[:]), putPermissionMsg.MerkleTree.Links[index].Hash)
+			logger.Error("Receive wrong piece, wrong hash is %s, expected hash is %s", hex.EncodeToString(hashBytes[:]), putPermissionMsg.MerkleTree.Links[index].Hash)
 			return
 		}
 
-		// Save node to disk
-		nodeFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putPermissionMsg.MerkleTree.Links[index].Hash)
+		// Save piece to disk
+		pieceFileName := filepath.FromSlash(fileStorePath + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putPermissionMsg.MerkleTree.Links[index].Hash)
 
 		// Write to disk
-		nodeFile, err := os.Create(nodeFileName)
+		nodeFile, err := os.Create(pieceFileName)
 		if err != nil {
-			logger.Error("Fatal error in creating the part '%s': %s", nodeFileName, err)
+			logger.Error("Fatal error in creating the part '%s': %s", pieceFileName, err)
 			os.RemoveAll(fileStorePath)
 			return
 		}
 		nodeFile.Close()
 
-		if err = ioutil.WriteFile(nodeFileName, message, os.ModeAppend); err != nil {
-			logger.Error("Fatal error in writing the part '%s': %s", nodeFileName, err)
+		if err = ioutil.WriteFile(pieceFileName, message, os.ModeAppend); err != nil {
+			logger.Error("Fatal error in writing the part '%s': %s", pieceFileName, err)
 			os.RemoveAll(fileStorePath)
 			return
 		}

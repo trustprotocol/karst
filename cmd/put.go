@@ -328,14 +328,15 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 	}
 
 	// Send nodes of file
-	logger.Info("Send '%s' file to '%s' karst node, the number of nodes of this file is %d", putProcesser.MerkleTree.Hash, chainAccount, putProcesser.MerkleTree.LinksNum)
+	logger.Info("Send '%s' file to '%s' karst node, the number of pieces of this file is %d", putProcesser.MerkleTree.Hash, chainAccount, putProcesser.MerkleTree.LinksNum)
+	bar := pb.StartNew(int(putProcesser.MerkleTree.LinksNum))
 	for index := range putProcesser.MerkleTree.Links {
-		nodeFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MerkleTree.Links[index].Hash)
-		logger.Debug("Try to get '%s' file", nodeFilePath)
+		bar.Increment()
+		pieceFilePath := filepath.FromSlash(putProcesser.FileStorePathInHash + "/" + strconv.FormatUint(uint64(index), 10) + "_" + putProcesser.MerkleTree.Links[index].Hash)
 
-		fileBytes, err := ioutil.ReadFile(nodeFilePath)
+		fileBytes, err := ioutil.ReadFile(pieceFilePath)
 		if err != nil {
-			return fmt.Errorf("Read file '%s' filed: %s", nodeFilePath, err)
+			return fmt.Errorf("Read file '%s' filed: %s", pieceFilePath, err)
 		}
 
 		err = c.WriteMessage(websocket.BinaryMessage, fileBytes)
@@ -343,6 +344,7 @@ func (putProcesser *PutProcesser) SendTo(chainAccount string) error {
 			return err
 		}
 	}
+	bar.Finish()
 
 	_, message, err = c.ReadMessage()
 	if err != nil {
