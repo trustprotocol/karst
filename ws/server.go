@@ -25,6 +25,7 @@ func StartServer(inDb *leveldb.DB, inConfig *config.Configuration) error {
 	cfg = inConfig
 	http.HandleFunc("/api/v0/node/data", nodeData)
 	http.HandleFunc("/api/v0/put", put)
+	http.HandleFunc("/api/v0/get", get)
 
 	logger.Info("Start ws at '%s'", cfg.BaseUrl)
 	if err := http.ListenAndServe(cfg.BaseUrl, nil); err != nil {

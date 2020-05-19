@@ -23,21 +23,89 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
 - 'base_url' is karst url
 - 'tee_base_url' is tee base url
 
-## Build & Run
+## Install & Run
 ```shell
-go build
+sudo ./install.sh
 ```
 
 ```shell
-./karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
-./karst put <file-path>
-./karst daemon
+karst -h
+karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
+karst daemon
+karst put file.txt --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA
+karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store
 ```
 
-## Websocket interface
+## Websocket interface (for user)
+### Put /api/v0/cmd/put
+#### Input
+```json
+{
+	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
+	"file_path": "/home/user/file.txt",
+	"chain_account": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA"
+}
+```
+
+#### Return
+```json
+{
+	"info":"Put '/home/user/file.txt' successfully in 16.497473348s ! It root hash is '1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282'.",
+	"status":200
+}
+```
+
+### Get /api/v0/cmd/get
+#### Input
+```json
+{
+	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
+	"file_hash":     "1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282",
+	"chain_account": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA",
+	"file_path":     "/home/user",
+}
+```
+
+#### Return
+```json
+{
+	"info":"Get '1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282' successfully in 15.12343s ! Stored loaction is '/home/user' .",
+	"status":200
+}
+```
+
+
+## Websocket interface (for karst)
+
+### Get /api/v0/get
+#### Send message to get read permission
+```json
+{
+	"chain_account": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA",
+	"store_order_hash": "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a",
+	"file_hash": "1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282",
+}
+```
+
+Success return:
+```json
+{
+	"status": 200,
+	"info": "",
+	"piece_num": 14
+}
+```
+
+Failed return example:
+```json
+{
+	"status": 500,
+	"info": "xxxx",
+	"piece_num": 0
+}
+```
 
 ### Put /api/v0/put
-
 #### Send order message to identity your authority
 ```json
 {
@@ -141,7 +209,7 @@ Success return:
 {
 	"is_stored": false,
 	"status": 200,
-	"info": ""
+	"info": "have permission to put this file '%s'"
 }
 ```
 
@@ -173,7 +241,7 @@ Failed return example (bad request):
 }
 ```
 
-
+## Websocket interface (for TEE)
 ### Node data /api/v0/node/data
 #### Send backup message to identity your authority
 ```json

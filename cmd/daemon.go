@@ -4,6 +4,7 @@ import (
 	"karst/config"
 	"karst/logger"
 	"karst/ws"
+	"karst/wscmd"
 
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -29,8 +30,9 @@ var daemonCmd = &cobra.Command{
 		defer db.Close()
 
 		// Register cmd apis
-		var wsCommands = []*WsCmd{
+		var wsCommands = []*wscmd.WsCmd{
 			putWsCmd,
+			getWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
