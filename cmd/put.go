@@ -66,7 +66,7 @@ var putWsCmd = &wscmd.WsCmd{
 
 		// Check chain account
 		chainAccount := args["chain_account"]
-		if chainAccount != "" {
+		if chainAccount == "" {
 			returnInfo := "Please provide a chain account"
 			logger.Error(returnInfo)
 			return PutReturnMessage{
