@@ -34,8 +34,8 @@ sudo ./install.sh
 karst -h
 karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
 karst daemon
-karst put file.txt --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA
-karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store
+karst put /home/user/file.txt --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA # put file must be absolute path
+karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --chain_account 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store # 'file_path' must be absolute path
 ```
 
 ## Websocket interface (for user)
@@ -48,6 +48,8 @@ karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --cha
 	"chain_account": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA"
 }
 ```
+
+**ps: 'file_path' must be absolute path**
 
 #### Return
 ```json
@@ -67,6 +69,7 @@ karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --cha
 	"file_path":     "/home/user",
 }
 ```
+**ps: 'file_path' must be absolute path**
 
 #### Return
 ```json

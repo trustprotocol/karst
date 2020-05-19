@@ -42,7 +42,7 @@ var putWsCmd = &wscmd.WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "put [file-path] [flags]",
 		Short: "Put file into karst",
-		Long:  "A file storage interface provided by karst",
+		Long:  "A file storage interface provided by karst, file path must be absolute path",
 		Args:  cobra.MinimumNArgs(1),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {

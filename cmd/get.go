@@ -24,7 +24,7 @@ type GetReturnMessage struct {
 
 func init() {
 	getWsCmd.Cmd.Flags().String("chain_account", "", "get file from the karst node with this 'chain_account' by storage market")
-	getWsCmd.Cmd.Flags().String("file_path", ".", "the file will be saved in this path, default value is current directory")
+	getWsCmd.Cmd.Flags().String("file_path", "", "the file will be saved in this path, file path must be absolute path")
 	getWsCmd.ConnectCmdAndWs()
 	rootCmd.AddCommand(getWsCmd.Cmd)
 }
@@ -72,6 +72,16 @@ var getWsCmd = &wscmd.WsCmd{
 			}
 		}
 
+		filePath := args["file_path"]
+		if filePath == "" {
+			errString := "File path is needed"
+			logger.Error(errString)
+			return GetReturnMessage{
+				Info:   errString,
+				Status: 400,
+			}
+		}
+
 		chainAccount := args["chain_account"]
 		if chainAccount == "" {
 			errString := "Chain account is needed"
@@ -83,13 +93,13 @@ var getWsCmd = &wscmd.WsCmd{
 		}
 
 		// Get file from other karst node
-		getReturnMsg := GetFromRemoteKarst(fileHash, args["file_path"], chainAccount, wsc.Cfg)
+		getReturnMsg := GetFromRemoteKarst(fileHash, filePath, chainAccount, wsc.Cfg)
 		if getReturnMsg.Status != 200 {
 			logger.Error("Get from remote karst failed, error is: %s", getReturnMsg.Info)
 			return getReturnMsg
 		} else {
 			return GetReturnMessage{
-				Info:   fmt.Sprintf("Get '%s' successfully in %s ! Stored loaction is '%s' .", args["file_hash"], time.Since(timeStart), args["file_path"]),
+				Info:   fmt.Sprintf("Get '%s' successfully in %s ! Stored loaction is '%s' .", fileHash, time.Since(timeStart), filePath),
 				Status: 200,
 			}
 		}
