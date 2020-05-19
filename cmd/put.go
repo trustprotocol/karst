@@ -27,8 +27,8 @@ import (
 )
 
 type PutReturnMessage struct {
-	Info   string
-	Status int
+	Info   string `json:"info"`
+	Status int    `json:"status"`
 }
 
 func init() {

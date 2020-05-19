@@ -18,8 +18,8 @@ import (
 )
 
 type GetReturnMessage struct {
-	Info   string
-	Status int
+	Info   string `json:"info"`
+	Status int    `json:"status"`
 }
 
 func init() {
@@ -89,7 +89,7 @@ var getWsCmd = &wscmd.WsCmd{
 			return getReturnMsg
 		} else {
 			return GetReturnMessage{
-				Info:   fmt.Sprintf("Get '%s' successfully in %s !", args["file_hash"], time.Since(timeStart)),
+				Info:   fmt.Sprintf("Get '%s' successfully in %s ! Stored loaction is '%s' .", args["file_hash"], time.Since(timeStart), args["file_path"]),
 				Status: 200,
 			}
 		}
