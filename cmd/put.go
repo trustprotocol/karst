@@ -231,8 +231,14 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 		return fmt.Errorf("Unmarshal json: %s", err)
 	}
 
-	if PutPermissionBackMessage.IsStored || PutPermissionBackMessage.Status != 200 {
+	if PutPermissionBackMessage.Status != 200 {
 		return fmt.Errorf(PutPermissionBackMessage.Info)
+	}
+
+	if PutPermissionBackMessage.IsStored {
+		logger.Info("The file '%s' is stored in remote karst node", putPermissionMsg.MerkleTree.Hash)
+		os.RemoveAll(fileInfo.StoredPath)
+		return nil
 	}
 
 	// Send nodes of file
