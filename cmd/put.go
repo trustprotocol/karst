@@ -197,7 +197,7 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
 
 	// Connect to other karst node
-	logger.Info("Connecting to %s", karstPutAddress)
+	logger.Info("Connecting to %s to put file", karstPutAddress)
 	c, _, err := websocket.DefaultDialer.Dial(karstPutAddress, nil)
 	if err != nil {
 		return err
@@ -226,16 +226,16 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	}
 	logger.Debug("Store permission request return: %s", message)
 
-	PutPermissionBackMessage := ws.PutPermissionBackMessage{}
-	if err = json.Unmarshal(message, &PutPermissionBackMessage); err != nil {
+	putPermissionBackMessage := ws.PutPermissionBackMessage{}
+	if err = json.Unmarshal(message, &putPermissionBackMessage); err != nil {
 		return fmt.Errorf("Unmarshal json: %s", err)
 	}
 
-	if PutPermissionBackMessage.Status != 200 {
-		return fmt.Errorf(PutPermissionBackMessage.Info)
+	if putPermissionBackMessage.Status != 200 {
+		return fmt.Errorf(putPermissionBackMessage.Info)
 	}
 
-	if PutPermissionBackMessage.IsStored {
+	if putPermissionBackMessage.IsStored {
 		logger.Info("The file '%s' is stored in remote karst node", putPermissionMsg.MerkleTree.Hash)
 		os.RemoveAll(fileInfo.StoredPath)
 		return nil
@@ -264,8 +264,17 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	if err != nil {
 		return err
 	}
+
+	putEndBackMessage := ws.PutEndBackMessage{}
+	if err = json.Unmarshal(message, &putEndBackMessage); err != nil {
+		return fmt.Errorf("Unmarshal json: %s", err)
+	}
+
+	if putEndBackMessage.Status != 200 {
+		return fmt.Errorf("Server seal error: %s", putEndBackMessage.Info)
+	}
+
 	os.RemoveAll(fileInfo.StoredPath)
 	logger.Debug("Store request return: %s", message)
-
 	return err
 }
