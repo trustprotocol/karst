@@ -42,7 +42,7 @@ func NewTee(baseUrl string, backup string) (*Tee, error) {
 func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := "ws://" + tee.BaseUrl + "/storage/seal"
-	logger.Info("Connecting to %s", url)
+	logger.Info("Connecting to TEE '%s' to seal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -96,7 +96,7 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := "ws://" + tee.BaseUrl + "/storage/unseal"
-	logger.Info("Connecting to %s", url)
+	logger.Info("Connecting to TEE '%s' to unseal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err

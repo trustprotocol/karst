@@ -49,6 +49,19 @@ func (ppb *PutPermissionBackMessage) sendBack(c *websocket.Conn) {
 	}
 }
 
+type PutEndBackMessage struct {
+	Status int    `json:"status"`
+	Info   string `json:"info"`
+}
+
+func (peb *PutEndBackMessage) sendBack(c *websocket.Conn) {
+	pebBytes, _ := json.Marshal(*peb)
+	err := c.WriteMessage(websocket.TextMessage, pebBytes)
+	if err != nil {
+		logger.Error("Write err: %s", err)
+	}
+}
+
 // TODO: ws message management
 func put(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
@@ -162,25 +175,26 @@ func put(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	putEndBackMsg := PutEndBackMessage{
+		Status: 200,
+	}
+
 	// Seal file
 	fileInfo, err := sealFile(putPermissionMsg.MerkleTree, fileStorePath)
 	if err != nil {
 		logger.Error("%s", err)
 		fileInfo.ClearFile()
-		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 500 }"))
-		if err != nil {
-			logger.Error("Write err: %s", err)
-		}
+		putEndBackMsg.Info = err.Error()
+		putEndBackMsg.Status = 500
+		putEndBackMsg.sendBack(c)
+		return
 	}
 
 	// Save to db
 	fileInfo.SaveToDb(db)
 
 	// Send success message
-	err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
-	if err != nil {
-		logger.Error("Write err: %s", err)
-	}
+	putEndBackMsg.sendBack(c)
 	logger.Info("Receiving file successfully in %s !", time.Since(timeStart))
 }
 
