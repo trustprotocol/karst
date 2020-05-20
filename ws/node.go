@@ -12,7 +12,7 @@ import (
 )
 
 type BackupMessage struct {
-	Backup string `json:"back_up"`
+	Backup string `json:"backup"`
 }
 
 type NodeDataMessage struct {
