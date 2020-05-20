@@ -29,7 +29,11 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
 
 ## Install & Run
 ```shell
-sudo ./install.sh
+sudo ./install.sh # for linux
+```
+
+```shell
+go build # for mac and windows, then move the kasrt bin to commands folder or add it to PATH
 ```
 
 ```shell
