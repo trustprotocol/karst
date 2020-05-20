@@ -271,7 +271,7 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	}
 
 	if putEndBackMessage.Status != 200 {
-		return fmt.Errorf("Server error")
+		return fmt.Errorf("Server seal error: %s", putEndBackMessage.Info)
 	}
 
 	os.RemoveAll(fileInfo.StoredPath)
