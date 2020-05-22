@@ -193,6 +193,7 @@ func split(inputfilePath string, cfg *config.Configuration) (*model.FileInfo, er
 func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration) error {
 	// TODO: Get address from chain
 	karstPutAddress := "ws://127.0.0.1:17000/api/v0/put"
+	// 下单
 	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
 	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
 
