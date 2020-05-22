@@ -18,7 +18,7 @@ type Provider struct {
 }
 
 // TODO: extract baseUrl, backup and pwd to common structure
-func Register(baseUrl string, backup string, pwd string, karstAddr string) bool {
+func Register(baseUrl string, backup string, pwd string, karstAddr string) error {
 	header := req.Header{
 		"password": pwd,
 	}
@@ -32,19 +32,21 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) bool 
 	logger.Debug("Register request body: %s", body)
 
 	r, err := req.Post(baseUrl+"/api/v1/market/register", header, body)
-	logger.Debug("Register response: %s", r)
 
-	rst := err == nil && r.Response().StatusCode == 200
-
-	if !rst {
-		logger.Error(err.Error())
+	if err != nil {
+		return err
 	}
 
-	return rst
+	if r.Response().StatusCode != 200 {
+		return fmt.Errorf("Register karst provider failed! Error code is: %d", r.Response().StatusCode)
+	}
+
+	logger.Debug("Register response: %s", r)
+
+	return nil
 }
 
 func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
-	logger.Info("123")
 	param := req.Param{
 		"address": pChainAddr,
 	}
@@ -54,10 +56,10 @@ func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
 		return "", err
 	}
 
-	logger.Debug("Get provider address response: %s", r)
 	if r.Response().StatusCode != 200 {
 		return "", fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
 	}
+	logger.Debug("Get provider address response: %s", r)
 
 	provider := Provider{}
 	if err = r.ToJSON(&provider); err != nil {
