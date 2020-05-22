@@ -194,7 +194,7 @@ func split(inputfilePath string, cfg *config.Configuration) (*model.FileInfo, er
 func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration) error {
 	karstBaseAddr, err := chain.GetProvideAddr(cfg.Crust.BaseUrl, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("Can't read karst address of '%s', error: %s", provider, err)
 	}
 
 	karstPutAddr := karstBaseAddr + "/api/v0/put"
