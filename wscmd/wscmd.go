@@ -37,7 +37,7 @@ func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
 		logger.Error("%s", err)
 		return
 	}
-	reqBody["backup"] = wsc.Cfg.Backup
+	reqBody["backup"] = wsc.Cfg.Crust.Backup
 
 	// Send message to ws
 	reqBodyBytes, err := json.Marshal(reqBody)
@@ -104,7 +104,7 @@ func (wsc *WsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 		wsc.sendBack(c, 400)
 		return
 	}
-	if args["backup"] != wsc.Cfg.Backup {
+	if args["backup"] != wsc.Cfg.Crust.Backup {
 		logger.Error("Wrong backup: %s", err)
 		wsc.sendBack(c, 400)
 		return

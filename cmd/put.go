@@ -30,7 +30,7 @@ type PutReturnMessage struct {
 }
 
 func init() {
-	putWsCmd.Cmd.Flags().String("chain_account", "", "file will be saved in the karst node with this 'chain_account' by storage market")
+	putWsCmd.Cmd.Flags().String("provider", "", "file will be saved in the karst node with this 'provider' by storage market")
 	putWsCmd.ConnectCmdAndWs()
 	rootCmd.AddCommand(putWsCmd.Cmd)
 }
@@ -44,14 +44,14 @@ var putWsCmd = &wscmd.WsCmd{
 		Args:  cobra.MinimumNArgs(1),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
-		chainAccount, err := cmd.Flags().GetString("chain_account")
+		provider, err := cmd.Flags().GetString("provider")
 		if err != nil {
 			return nil, err
 		}
 
 		reqBody := map[string]string{
-			"file_path":     args[0],
-			"chain_account": chainAccount,
+			"file_path": args[0],
+			"provider":  provider,
 		}
 
 		return reqBody, nil
@@ -60,10 +60,10 @@ var putWsCmd = &wscmd.WsCmd{
 	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
-		// Check chain account
-		chainAccount := args["chain_account"]
-		if chainAccount == "" {
-			returnInfo := "Please provide a chain account"
+		// Check provider
+		provider := args["provider"]
+		if provider == "" {
+			returnInfo := "Please provide a provider"
 			logger.Error(returnInfo)
 			return PutReturnMessage{
 				Status: 400,
@@ -71,7 +71,7 @@ var putWsCmd = &wscmd.WsCmd{
 			}
 		}
 
-		logger.Info("Try to save file to chain account: %s", chainAccount)
+		logger.Info("Try to save file to provider: %s", provider)
 		fileInfo, err := split(args["file_path"], wsc.Cfg)
 		if err != nil {
 			logger.Error("%s", err)
@@ -85,7 +85,7 @@ var putWsCmd = &wscmd.WsCmd{
 			logger.Debug("Splited merkleTree is %s", string(merkleTreeBytes))
 		}
 
-		if err = sendTo(fileInfo, chainAccount, wsc.Cfg); err != nil {
+		if err = sendTo(fileInfo, provider, wsc.Cfg); err != nil {
 			logger.Error("%s", err)
 			fileInfo.ClearFile()
 			return PutReturnMessage{
@@ -190,7 +190,7 @@ func split(inputfilePath string, cfg *config.Configuration) (*model.FileInfo, er
 	return fileInfo, nil
 }
 
-func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Configuration) error {
+func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration) error {
 	// TODO: Get address from chain
 	karstPutAddress := "ws://127.0.0.1:17000/api/v0/put"
 	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
@@ -205,7 +205,7 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	defer c.Close()
 
 	putPermissionMsg := ws.PutPermissionMessage{
-		ChainAccount:   cfg.ChainAccount,
+		Client:         cfg.Crust.Address,
 		StoreOrderHash: storeOrderHash,
 		MerkleTree:     fileInfo.MerkleTree,
 	}
@@ -242,7 +242,7 @@ func sendTo(fileInfo *model.FileInfo, otherChainAccount string, cfg *config.Conf
 	}
 
 	// Send nodes of file
-	logger.Info("Send '%s' file to '%s' karst node, the number of pieces of this file is %d", fileInfo.MerkleTree.Hash, otherChainAccount, fileInfo.MerkleTree.LinksNum)
+	logger.Info("Send '%s' file to '%s' karst node, the number of pieces of this file is %d", fileInfo.MerkleTree.Hash, provider, fileInfo.MerkleTree.LinksNum)
 	bar := pb.StartNew(int(fileInfo.MerkleTree.LinksNum))
 	for index := range fileInfo.MerkleTree.Links {
 		bar.Increment()

@@ -20,7 +20,7 @@ import (
 )
 
 type PutPermissionMessage struct {
-	ChainAccount   string                     `json:"chain_account"`
+	Client         string                     `json:"client"`
 	StoreOrderHash string                     `json:"store_order_hash"`
 	MerkleTree     *merkletree.MerkleTreeNode `json:"merkle_tree"`
 }
@@ -206,7 +206,7 @@ func sealFile(merkleTree *merkletree.MerkleTreeNode, fileStorePath string) (*mod
 		MerkleTreeSealed: nil,
 	}
 
-	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Backup)
+	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Crust.Backup)
 	if err != nil {
 		return fileInfo, fmt.Errorf("Fatal error in creating tee structure: %s", err)
 	}

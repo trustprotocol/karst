@@ -23,7 +23,7 @@ type GetReturnMessage struct {
 }
 
 func init() {
-	getWsCmd.Cmd.Flags().String("chain_account", "", "get file from the karst node with this 'chain_account' by storage market")
+	getWsCmd.Cmd.Flags().String("provider", "", "get file from the karst node with this 'provider' by storage market")
 	getWsCmd.Cmd.Flags().String("file_path", "", "the file will be saved in this path, file path must be absolute path")
 	getWsCmd.ConnectCmdAndWs()
 	rootCmd.AddCommand(getWsCmd.Cmd)
@@ -38,7 +38,7 @@ var getWsCmd = &wscmd.WsCmd{
 		Args:  cobra.MinimumNArgs(1),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
-		chainAccount, err := cmd.Flags().GetString("chain_account")
+		provider, err := cmd.Flags().GetString("provider")
 		if err != nil {
 			return nil, err
 		}
@@ -49,9 +49,9 @@ var getWsCmd = &wscmd.WsCmd{
 		}
 
 		reqBody := map[string]string{
-			"file_hash":     args[0],
-			"chain_account": chainAccount,
-			"file_path":     filePath,
+			"file_hash": args[0],
+			"provider":  provider,
+			"file_path": filePath,
 		}
 
 		return reqBody, nil
@@ -82,9 +82,9 @@ var getWsCmd = &wscmd.WsCmd{
 			}
 		}
 
-		chainAccount := args["chain_account"]
-		if chainAccount == "" {
-			errString := "Chain account is needed"
+		provider := args["provider"]
+		if provider == "" {
+			errString := "Provider is needed"
 			logger.Error(errString)
 			return GetReturnMessage{
 				Info:   errString,
@@ -93,7 +93,7 @@ var getWsCmd = &wscmd.WsCmd{
 		}
 
 		// Get file from other karst node
-		getReturnMsg := GetFromRemoteKarst(fileHash, filePath, chainAccount, wsc.Cfg)
+		getReturnMsg := GetFromRemoteKarst(fileHash, filePath, provider, wsc.Cfg)
 		if getReturnMsg.Status != 200 {
 			logger.Error("Get from remote karst failed, error is: %s", getReturnMsg.Info)
 			return getReturnMsg
@@ -106,10 +106,10 @@ var getWsCmd = &wscmd.WsCmd{
 	},
 }
 
-func GetFromRemoteKarst(fileHash string, filePath string, remoteChainAccount string, cfg *config.Configuration) GetReturnMessage {
-	// TODO: Get address from chain by using 'remoteChainAccount'
+func GetFromRemoteKarst(fileHash string, filePath string, provider string, cfg *config.Configuration) GetReturnMessage {
+	// TODO: Get address from chain by using 'provider'
 	karstGetAddress := "ws://127.0.0.1:17000/api/v0/get"
-	// TODO: Get store order hash from chain by using 'fileHash' and cfg.ChainAccount
+	// TODO: Get store order hash from chain by using 'fileHash' and cfg.Crust.Address
 	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
 
 	// Connect to other karst node
@@ -124,7 +124,7 @@ func GetFromRemoteKarst(fileHash string, filePath string, remoteChainAccount str
 	defer c.Close()
 
 	getPermissionMsg := ws.GetPermissionMessage{
-		ChainAccount:   cfg.ChainAccount,
+		Client:         cfg.Crust.Address,
 		StoreOrderHash: storeOrderHash,
 		FileHash:       fileHash,
 	}

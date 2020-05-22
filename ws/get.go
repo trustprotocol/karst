@@ -17,7 +17,7 @@ import (
 )
 
 type GetPermissionMessage struct {
-	ChainAccount   string `json:"chain_account"`
+	Client         string `json:"client"`
 	StoreOrderHash string `json:"store_order_hash"`
 	FileHash       string `json:"file_hash"`
 }
@@ -113,7 +113,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Unseal file
-	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Backup)
+	tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Crust.Backup)
 	if err != nil {
 		logger.Error("Fatal error in creating tee structure: %s", err)
 		return
