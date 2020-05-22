@@ -108,7 +108,7 @@ var getWsCmd = &wscmd.WsCmd{
 }
 
 func GetFromRemoteKarst(fileHash string, filePath string, provider string, cfg *config.Configuration) GetReturnMessage {
-	karstBaseAddr, err := chain.GetProvideAddr(cfg.Crust.BaseUrl, provider)
+	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
 	if err != nil {
 		return GetReturnMessage{
 			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),

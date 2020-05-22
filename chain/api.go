@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"fmt"
 	"karst/logger"
 
 	"github.com/imroc/req"
@@ -42,18 +43,26 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) bool 
 	return rst
 }
 
-func GetProvideAddr(baseUrl string, pChainAddr string) (string, error) {
+func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
+	logger.Info("123")
 	param := req.Param{
 		"address": pChainAddr,
 	}
 	r, err := req.Get(baseUrl+"/api/v1/market/provider", param)
 
-	if r.Response().StatusCode == 200 {
-		provider := Provider{}
-		r.ToJSON(&provider)
-		return provider.Address, nil
+	if err != nil {
+		return "", err
 	}
 
-	logger.Error(err.Error())
-	return "", err
+	logger.Debug("Get provider address response: %s", r)
+	if r.Response().StatusCode != 200 {
+		return "", fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
+	}
+
+	provider := Provider{}
+	if err = r.ToJSON(&provider); err != nil {
+		return "", err
+	}
+
+	return provider.Address, nil
 }
