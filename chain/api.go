@@ -1,8 +1,9 @@
 package chain
 
 import (
-	"github.com/imroc/req"
 	"karst/logger"
+
+	"github.com/imroc/req"
 )
 
 type RegisterRequest struct {
@@ -21,10 +22,10 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) bool 
 	}
 
 	body := req.BodyJSON(&regReq)
-	logger.Debug("Register request body:", body)
+	logger.Debug("Register request body: %s", body)
 
 	r, err := req.Post(baseUrl+"/api/v1/market/register", header, body)
-	logger.Debug("Register response:", r)
+	logger.Debug("Register response: %s", r)
 
 	rst := err == nil && r.Response().StatusCode == 200
 

@@ -21,7 +21,6 @@ func init() {
 	rootCmd.AddCommand(registerWsCmd.Cmd)
 }
 
-// TODO: Optimize error flow and increase status
 var registerWsCmd = &wscmd.WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "register [karst_address]",
@@ -52,7 +51,7 @@ var registerWsCmd = &wscmd.WsCmd{
 			}
 		}
 
-		// Get file from other karst node
+		// Register karst address
 		registerReturnMsg := RegisterToChain(karstAddr, wsc.Cfg)
 		if registerReturnMsg.Status != 200 {
 			logger.Error("Register to crust failed, error is: %s", registerReturnMsg.Info)
