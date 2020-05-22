@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/util"
@@ -107,10 +108,14 @@ var getWsCmd = &wscmd.WsCmd{
 }
 
 func GetFromRemoteKarst(fileHash string, filePath string, provider string, cfg *config.Configuration) GetReturnMessage {
-	// TODO: Get address from chain by using 'provider'
-	karstGetAddress := "ws://127.0.0.1:17000/api/v0/get"
-	// TODO: Get store order hash from chain by using 'fileHash' and cfg.Crust.Address
-	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
+	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	if err != nil {
+		return GetReturnMessage{
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Status: 500,
+		}
+	}
+	karstGetAddress := karstBaseAddr + "/api/v0/get"
 
 	// Connect to other karst node
 	logger.Info("Connecting to %s", karstGetAddress)
@@ -124,9 +129,8 @@ func GetFromRemoteKarst(fileHash string, filePath string, provider string, cfg *
 	defer c.Close()
 
 	getPermissionMsg := ws.GetPermissionMessage{
-		Client:         cfg.Crust.Address,
-		StoreOrderHash: storeOrderHash,
-		FileHash:       fileHash,
+		Client:   cfg.Crust.Address,
+		FileHash: fileHash,
 	}
 
 	getPermissionMsgBytes, err := json.Marshal(getPermissionMsg)

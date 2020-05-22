@@ -17,9 +17,8 @@ import (
 )
 
 type GetPermissionMessage struct {
-	Client         string `json:"client"`
-	StoreOrderHash string `json:"store_order_hash"`
-	FileHash       string `json:"file_hash"`
+	Client   string `json:"client"`
+	FileHash string `json:"file_hash"`
 }
 
 func newGetPermissionMessage(msg []byte) (*GetPermissionMessage, error) {
@@ -83,7 +82,6 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("Get file message: %s", msg)
 
-	// TODO: Use get file message to determine whether to transfer data
 	// Check if file exists
 	if ok, _ := db.Has([]byte(getPermissionMsg.FileHash), nil); !ok {
 		getPermissionBackMsg.Info = fmt.Sprintf("This file '%s' isn't stored in this node", getPermissionMsg.FileHash)

@@ -3,6 +3,7 @@ package chain
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"karst/logger"
 
 	"github.com/imroc/req"
@@ -14,8 +15,8 @@ type RegisterRequest struct {
 }
 
 type Provider struct {
-	Address string `json:"address"`
-	FileMap string `json:"file_map"`
+	Address string     `json:"address"`
+	FileMap [][]string `json:"file_map"`
 }
 
 type SOrderRequest struct {
@@ -48,7 +49,7 @@ type SOrderResponse struct {
 }
 
 // TODO: extract baseUrl, backup and pwd to common structure
-func Register(baseUrl string, backup string, pwd string, karstAddr string) bool {
+func Register(baseUrl string, backup string, pwd string, karstAddr string) error {
 	header := req.Header{
 		"password": pwd,
 	}
@@ -62,31 +63,41 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) bool 
 	logger.Debug("Register request body: %s", body)
 
 	r, err := req.Post(baseUrl+"/api/v1/market/register", header, body)
-	logger.Debug("Register response: %s", r)
 
-	rst := err == nil && r.Response().StatusCode == 200
-
-	if !rst {
-		logger.Error(err.Error())
+	if err != nil {
+		return err
 	}
 
-	return rst
+	if r.Response().StatusCode != 200 {
+		return fmt.Errorf("Register karst provider failed! Error code is: %d", r.Response().StatusCode)
+	}
+
+	logger.Debug("Register response: %s", r)
+
+	return nil
 }
 
-func GetProvideAddr(baseUrl string, pChainAddr string) (string, error) {
+func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
 	param := req.Param{
 		"address": pChainAddr,
 	}
 	r, err := req.Get(baseUrl+"/api/v1/market/provider", param)
 
-	if r.Response().StatusCode == 200 {
-		provider := Provider{}
-		r.ToJSON(&provider)
-		return provider.Address, nil
+	if err != nil {
+		return "", err
 	}
 
-	logger.Error(err.Error())
-	return "", err
+	if r.Response().StatusCode != 200 {
+		return "", fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
+	}
+	logger.Debug("Get provider address response: %s", r)
+
+	provider := Provider{}
+	if err = r.ToJSON(&provider); err != nil {
+		return "", err
+	}
+
+	return provider.Address, nil
 }
 
 func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider string, fId string, fSize uint64) (string, error) {
@@ -116,18 +127,20 @@ func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider strin
 	body := req.BodyJSON(&sOrderReq)
 
 	r, err := req.Post(baseUrl+"/api/v1/market/sorder", header, body)
-
-	if r.Response().StatusCode == 200 {
-		sOrderRes := SOrderResponse{}
-		r.ToJSON(&sOrderRes)
-		logger.Debug("sorderRes:", sOrderRes)
-		return sOrderRes.OrderId, nil
+	if err != nil {
+		return "", err
 	}
 
-	logger.Debug("Response from sorder:", r)
+	if r.Response().StatusCode != 200 {
+		return "", fmt.Errorf("Place storage order failed, error code: %d", r.Response().StatusCode)
+	}
+	logger.Debug("Response from sorder: %s", r)
 
-	logger.Error(err.Error())
-	return "", err
+	sOrderRes := SOrderResponse{}
+	if err = r.ToJSON(&sOrderRes); err != nil {
+		return "", err
+	}
+	return sOrderRes.OrderId, nil
 }
 
 func GetStorageOrder(baseUrl string, orderId string) (FullStorageOrder, error) {
