@@ -110,7 +110,7 @@ func (wsc *WsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 		wsc.sendBack(c, 400)
 		return
 	}
-	if args["password"] != wsc.Cfg.Crust.Backup {
+	if args["password"] != wsc.Cfg.Crust.Password {
 		logger.Error("Wrong password: %s", err)
 		wsc.sendBack(c, 400)
 		return

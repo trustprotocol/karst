@@ -11,6 +11,12 @@ type RegisterRequest struct {
 	Backup      string `json:"backup"`
 }
 
+type Provider struct {
+	Address string `json:"address"`
+	FileMap string `json:"file_map"`
+}
+
+// TODO: extract baseUrl, backup and pwd to common structure
 func Register(baseUrl string, backup string, pwd string, karstAddr string) bool {
 	header := req.Header{
 		"password": pwd,
@@ -34,4 +40,20 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) bool 
 	}
 
 	return rst
+}
+
+func GetProvideAddr(baseUrl string, pChainAddr string) (string, error) {
+	param := req.Param{
+		"address": pChainAddr,
+	}
+	r, err := req.Get(baseUrl+"/api/v1/market/provider", param)
+
+	if r.Response().StatusCode == 200 {
+		provider := Provider{}
+		r.ToJSON(&provider)
+		return provider.Address, nil
+	}
+
+	logger.Error(err.Error())
+	return "", err
 }

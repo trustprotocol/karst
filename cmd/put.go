@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
@@ -191,14 +192,18 @@ func split(inputfilePath string, cfg *config.Configuration) (*model.FileInfo, er
 }
 
 func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration) error {
-	// TODO: Get address from chain
-	karstPutAddress := "ws://127.0.0.1:17000/api/v0/put"
+	karstBaseAddr, err := chain.GetProvideAddr(cfg.Crust.BaseUrl, provider)
+	if err != nil {
+		return err
+	}
+
+	karstPutAddr := karstBaseAddr + "/api/v0/put"
 	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
 	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
 
 	// Connect to other karst node
-	logger.Info("Connecting to %s to put file", karstPutAddress)
-	c, _, err := websocket.DefaultDialer.Dial(karstPutAddress, nil)
+	logger.Info("Connecting to %s to put file", karstPutAddr)
+	c, _, err := websocket.DefaultDialer.Dial(karstPutAddr, nil)
 	if err != nil {
 		return err
 	}
