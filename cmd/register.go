@@ -2,19 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/wscmd"
 	"time"
 
-	"github.com/imroc/req"
 	"github.com/spf13/cobra"
 )
-
-type RegisterInfo struct {
-	karstAddr string `json:"addressInfo"`
-	backup    string `json:"backup"`
-}
 
 type RegisterReturnMsg struct {
 	Info   string `json:"info"`
@@ -58,12 +53,12 @@ var registerWsCmd = &wscmd.WsCmd{
 		}
 
 		// Get file from other karst node
-		getReturnMsg := RegisterToChain(karstAddr, wsc.Cfg)
-		if getReturnMsg.Status != 200 {
-			logger.Error("Register to crust failed, error is: %s", getReturnMsg.Info)
-			return getReturnMsg
+		registerReturnMsg := RegisterToChain(karstAddr, wsc.Cfg)
+		if registerReturnMsg.Status != 200 {
+			logger.Error("Register to crust failed, error is: %s", registerReturnMsg.Info)
+			return registerReturnMsg
 		} else {
-			return GetReturnMessage{
+			return RegisterReturnMsg{
 				Info:   fmt.Sprintf("Register '%s' successful in %s ! You can check it on crust.", karstAddr, time.Since(timeStart)),
 				Status: 200,
 			}
@@ -72,18 +67,16 @@ var registerWsCmd = &wscmd.WsCmd{
 }
 
 func RegisterToChain(karstAddr string, cfg *config.Configuration) RegisterReturnMsg {
-	// 1. Inject password to header
-	header := req.Header{
-		"password": cfg.Password,
+	rSuccess := chain.Register(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, karstAddr)
+
+	if rSuccess {
+		return RegisterReturnMsg{
+			Status: 200,
+		}
 	}
 
-	// 2. Construct body
-	regInfo := RegisterInfo{
-		karstAddr,
-		cfg.Backup,
+	return RegisterReturnMsg{
+		Info:   "Register failed, please make sure:\n1. Your `backup`, `password` is correct\n2. You have report works",
+		Status: 400,
 	}
-	body := req.BodyJSON(regInfo)
-
-	// 3. Request
-
 }
