@@ -59,7 +59,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if backupMes.Backup != cfg.Backup {
+	if backupMes.Backup != cfg.Crust.Backup {
 		logger.Error("Need right backup")
 		err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		if err != nil {

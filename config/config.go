@@ -9,14 +9,20 @@ import (
 	"github.com/spf13/viper"
 )
 
+type CrustConfiguration struct {
+	BaseUrl  string
+	Backup   string
+	Address  string
+	Password string
+}
+
 type Configuration struct {
 	KarstPaths   *util.KarstPaths
 	BaseUrl      string
 	FilePartSize uint64
 	TeeBaseUrl   string
 	LogLevel     string
-	Backup       string
-	ChainAccount string
+	Crust        CrustConfiguration
 }
 
 var config *Configuration
@@ -47,8 +53,10 @@ func GetInstance() *Configuration {
 		config.BaseUrl = viper.GetString("base_url")
 		config.TeeBaseUrl = viper.GetString("tee_base_url")
 		config.LogLevel = viper.GetString("log_level")
-		config.Backup = viper.GetString("backup")
-		config.ChainAccount = viper.GetString("chian_account")
+		config.Crust.BaseUrl = viper.GetString("crust.base_url")
+		config.Crust.Backup = viper.GetString("crust.backup")
+		config.Crust.Address = viper.GetString("crust.address")
+		config.Crust.Password = viper.GetString("crust.password")
 
 		// Use configuration
 		if config.LogLevel == "debug" {
@@ -64,7 +72,8 @@ func (cfg *Configuration) Show() {
 	logger.Info("BaseUrl = %s", cfg.BaseUrl)
 	logger.Info("TeeBaseUrl = %s", cfg.TeeBaseUrl)
 	logger.Info("LogLevel = %s", cfg.LogLevel)
-	logger.Info("ChainAccount = %s", cfg.ChainAccount)
+	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
+	logger.Info("Crust.Address = %s", cfg.Crust.Address)
 }
 
 func WriteDefault(configFilePath string) {
@@ -72,8 +81,10 @@ func WriteDefault(configFilePath string) {
 	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
-	viper.Set("backup", "")
-	viper.Set("chian_account", "")
+	viper.Set("crust.base_url", "")
+	viper.Set("crust.backup", "")
+	viper.Set("crust.address", "")
+	viper.Set("crust.password", "")
 
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		logger.Error("Fatal error in creating karst configuration file: %s\n", err)
