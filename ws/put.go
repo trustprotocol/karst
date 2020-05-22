@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"karst/chain"
 	"karst/logger"
 	"karst/merkletree"
 	"karst/model"
@@ -108,7 +109,21 @@ func put(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debug("Recv store permission message: %s, message type is %d", message, mt)
 
-	// TODO: check store order extrisic
+	sOrder, err := chain.GetStorageOrder(cfg.Crust.BaseUrl, putPermissionMsg.StoreOrderHash)
+	if err != nil {
+		putPermissionBackMsg.Status = 400
+		putPermissionBackMsg.Info = "Error from chain api"
+		putPermissionBackMsg.sendBack(c)
+		return
+	}
+	if sOrder.FileIdentifier != "0x"+putPermissionMsg.MerkleTree.Hash || sOrder.Provider != cfg.Crust.Address {
+		putPermissionBackMsg.Status = 400
+		putPermissionBackMsg.Info = "Invalid order id"
+		putPermissionBackMsg.sendBack(c)
+		return
+	}
+	logger.Debug("Storage order check success!")
+
 	// Check if the file has been stored locally
 	if ok, _ := db.Has([]byte(putPermissionMsg.MerkleTree.Hash), nil); ok {
 		putPermissionBackMsg.IsStored = true

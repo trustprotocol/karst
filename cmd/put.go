@@ -198,8 +198,12 @@ func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration
 	}
 
 	karstPutAddr := karstBaseAddr + "/api/v0/put"
-	// TODO: Send store order to get storage permission, need to confirm the extrinsic has been generated
-	storeOrderHash := "5e9b98f62cfc0ca310c54958774d4b32e04d36ca84f12bd8424c1b675cf3991a"
+	storeOrderHash, err := chain.PlaceStorageOrder(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, provider, "0x"+fileInfo.MerkleTree.Hash, fileInfo.MerkleTree.Size)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("Storage order id:", storeOrderHash)
 
 	// Connect to other karst node
 	logger.Info("Connecting to %s to put file", karstPutAddr)
