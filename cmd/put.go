@@ -37,6 +37,7 @@ func init() {
 }
 
 // TODO: Optimize error flow and increase status
+// TODO: Thinking about duplicate files
 var putWsCmd = &wscmd.WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "put [file-path] [flags]",
@@ -203,7 +204,7 @@ func sendTo(fileInfo *model.FileInfo, provider string, cfg *config.Configuration
 		return err
 	}
 
-	logger.Debug("Storage order id:", storeOrderHash)
+	logger.Debug("Storage order id: %s", storeOrderHash)
 
 	// Connect to other karst node
 	logger.Info("Connecting to %s to put file", karstPutAddr)
