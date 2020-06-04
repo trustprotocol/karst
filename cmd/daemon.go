@@ -6,6 +6,7 @@ import (
 	"karst/logger"
 	"karst/ws"
 	"karst/wscmd"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -37,7 +38,7 @@ var daemonCmd = &cobra.Command{
 		fs, err := fs.OpenFastdfs(cfg)
 		if err != nil {
 			logger.Error("Fatal error in opening fastdfs: %s", err)
-			panic(err)
+			os.Exit(-1)
 		}
 		defer fs.Close()
 
@@ -49,7 +50,7 @@ var daemonCmd = &cobra.Command{
 		}
 
 		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db, cfg)
+			wsCmd.Register(db, fs, cfg)
 		}
 
 		// Start websocket service
