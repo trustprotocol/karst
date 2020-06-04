@@ -16,6 +16,11 @@ type CrustConfiguration struct {
 	Password string
 }
 
+type FastdfsConfiguration struct {
+	TrackerAddrs []string
+	MaxConns     int
+}
+
 type Configuration struct {
 	KarstPaths   *util.KarstPaths
 	BaseUrl      string
@@ -23,6 +28,7 @@ type Configuration struct {
 	TeeBaseUrl   string
 	LogLevel     string
 	Crust        CrustConfiguration
+	Fastdfs      FastdfsConfiguration
 }
 
 var config *Configuration
@@ -57,6 +63,8 @@ func GetInstance() *Configuration {
 		config.Crust.Backup = viper.GetString("crust.backup")
 		config.Crust.Address = viper.GetString("crust.address")
 		config.Crust.Password = viper.GetString("crust.password")
+		config.Fastdfs.TrackerAddrs = viper.GetStringSlice("fastdfs.tracker_addrs")
+		config.Fastdfs.MaxConns = viper.GetInt("fastdfs.max_conns")
 
 		// Use configuration
 		if config.LogLevel == "debug" {
@@ -78,14 +86,22 @@ func (cfg *Configuration) Show() {
 
 func WriteDefault(configFilePath string) {
 	viper.SetConfigType("json")
+	// Base configuration
 	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "127.0.0.1:12222/api/v0")
 	viper.Set("log_level", "")
+
+	// Crust chain configuration
 	viper.Set("crust.base_url", "")
 	viper.Set("crust.backup", "")
 	viper.Set("crust.address", "")
 	viper.Set("crust.password", "")
 
+	// Fastdfs configuration
+	viper.Set("fastdfs.tracker_addrs", make([]string, 0))
+	viper.Set("fastdfs.max_conns", 100)
+
+	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		logger.Error("Fatal error in creating karst configuration file: %s\n", err)
 		panic(err)
