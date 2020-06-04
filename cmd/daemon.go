@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"karst/config"
+	"karst/fs"
 	"karst/logger"
 	"karst/ws"
 	"karst/wscmd"
@@ -19,15 +20,26 @@ var daemonCmd = &cobra.Command{
 	Short: "Start karst service",
 	Long:  "Start karst service, it will use '$HOME/.karst' to run krast by default, set KARST_PATH to change execution space",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Base classes
+		// Configuation
 		cfg := config.GetInstance()
 		cfg.Show()
+
+		// DB
 		db, err := leveldb.OpenFile(cfg.KarstPaths.DbPath, nil)
 		if err != nil {
-			logger.Error("Fatal error in opening db: %s\n", err)
+			logger.Error("Fatal error in opening leveldb: %s", err)
 			panic(err)
 		}
 		defer db.Close()
+
+		// FS
+		// TODO: Support mulitable file system
+		fs, err := fs.OpenFastdfs(cfg)
+		if err != nil {
+			logger.Error("Fatal error in opening fastdfs: %s", err)
+			panic(err)
+		}
+		defer fs.Close()
 
 		// Register cmd apis
 		var wsCommands = []*wscmd.WsCmd{
