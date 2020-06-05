@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
@@ -156,11 +155,11 @@ func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*
 		if err != nil {
 			return fileInfo, fmt.Errorf("Fatal error in creating the part '%s' of '%s': %s", partFileName, filePath, err)
 		}
-		partFile.Close()
 
-		if err = ioutil.WriteFile(partFileName, partBuffer, os.ModeAppend); err != nil {
+		if _, err = partFile.Write(partBuffer); err != nil {
 			return fileInfo, fmt.Errorf("Fatal error in writing the part '%s' of '%s': %s", partFileName, filePath, err)
 		}
+		partFile.Close()
 	}
 	bar.Finish()
 
