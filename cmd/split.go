@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type SplitReturnMsg struct {
+type splitReturnMsg struct {
 	Info       string `json:"info"`
 	MerkleTree string `json:"merkle_tree"`
 	Status     int    `json:"status"`
@@ -51,13 +51,14 @@ var splitWsCmd = &wscmd.WsCmd{
 	WsEndpoint: "split",
 	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
 		timeStart := time.Now()
+		logger.Debug("Split input is %s", args)
 
 		// Check input
 		filePath := args["file_path"]
 		if filePath == "" {
-			errString := "File path is needed"
+			errString := "The field 'file_path' is needed"
 			logger.Error(errString)
-			return SplitReturnMsg{
+			return splitReturnMsg{
 				Info:   errString,
 				Status: 400,
 			}
@@ -65,9 +66,9 @@ var splitWsCmd = &wscmd.WsCmd{
 
 		outputPath := strings.TrimRight(strings.TrimRight(args["output_path"], "/"), "\\")
 		if outputPath == "" {
-			errString := "Output path is needed"
+			errString := "The field 'output_path' is needed"
 			logger.Error(errString)
-			return SplitReturnMsg{
+			return splitReturnMsg{
 				Info:   errString,
 				Status: 400,
 			}
@@ -77,7 +78,7 @@ var splitWsCmd = &wscmd.WsCmd{
 		if err != nil {
 			logger.Error("%s", err)
 			fileInfo.ClearFile()
-			return SplitReturnMsg{
+			return splitReturnMsg{
 				Info:   err.Error(),
 				Status: 500,
 			}
@@ -88,7 +89,7 @@ var splitWsCmd = &wscmd.WsCmd{
 
 		returnInfo := fmt.Sprintf("Split '%s' successfully in %s ! It root hash is '%s'.", filePath, time.Since(timeStart), fileInfo.MerkleTree.Hash)
 		logger.Info(returnInfo)
-		return SplitReturnMsg{
+		return splitReturnMsg{
 			Info:       returnInfo,
 			MerkleTree: string(merkleTreeBytes),
 			Status:     200,

@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type RegisterReturnMsg struct {
+type registerReturnMsg struct {
 	Info   string `json:"info"`
 	Status int    `json:"status"`
 }
@@ -39,13 +39,14 @@ var registerWsCmd = &wscmd.WsCmd{
 	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
+		logger.Debug("Register input is %s", args)
 
 		// Check input
 		karstAddr := args["karst_address"]
 		if karstAddr == "" {
-			errString := "Provider's address is needed"
+			errString := "The field 'karst_address' is needed"
 			logger.Error(errString)
-			return RegisterReturnMsg{
+			return registerReturnMsg{
 				Info:   errString,
 				Status: 400,
 			}
@@ -57,23 +58,21 @@ var registerWsCmd = &wscmd.WsCmd{
 			logger.Error("Register to crust failed, error is: %s", registerReturnMsg.Info)
 			return registerReturnMsg
 		} else {
-			return RegisterReturnMsg{
-				Info:   fmt.Sprintf("Register '%s' successful in %s ! You can check it on crust.", karstAddr, time.Since(timeStart)),
-				Status: 200,
-			}
+			registerReturnMsg.Info = fmt.Sprintf("Register '%s' successful in %s ! You can check it on crust.", karstAddr, time.Since(timeStart))
+			return registerReturnMsg
 		}
 	},
 }
 
-func RegisterToChain(karstAddr string, cfg *config.Configuration) RegisterReturnMsg {
+func RegisterToChain(karstAddr string, cfg *config.Configuration) registerReturnMsg {
 	if err := chain.Register(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, karstAddr); err != nil {
-		return RegisterReturnMsg{
+		return registerReturnMsg{
 			Info:   fmt.Sprintf("Register failed, please make sure:\n1. Your `backup`, `password` is correct\n2. You have report works, err is: %s", err.Error()),
 			Status: 400,
 		}
 	}
 
-	return RegisterReturnMsg{
+	return registerReturnMsg{
 		Status: 200,
 	}
 }
