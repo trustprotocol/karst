@@ -29,7 +29,7 @@ var daemonCmd = &cobra.Command{
 		db, err := leveldb.OpenFile(cfg.KarstPaths.DbPath, nil)
 		if err != nil {
 			logger.Error("Fatal error in opening leveldb: %s", err)
-			panic(err)
+			os.Exit(-1)
 		}
 		defer db.Close()
 
