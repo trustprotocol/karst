@@ -47,6 +47,7 @@ var daemonCmd = &cobra.Command{
 			putWsCmd,
 			getWsCmd,
 			registerWsCmd,
+			splitWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
@@ -56,8 +57,8 @@ var daemonCmd = &cobra.Command{
 		// Start websocket service
 		if err := ws.StartServer(db, cfg); err != nil {
 			logger.Error("%s", err)
+		} else {
+			logger.Info("Karst daemon successfully!")
 		}
-
-		logger.Info("Karst daemon successfully!")
 	},
 }
