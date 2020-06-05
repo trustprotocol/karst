@@ -29,7 +29,7 @@ var daemonCmd = &cobra.Command{
 		db, err := leveldb.OpenFile(cfg.KarstPaths.DbPath, nil)
 		if err != nil {
 			logger.Error("Fatal error in opening leveldb: %s", err)
-			panic(err)
+			os.Exit(-1)
 		}
 		defer db.Close()
 
@@ -44,8 +44,6 @@ var daemonCmd = &cobra.Command{
 
 		// Register cmd apis
 		var wsCommands = []*wscmd.WsCmd{
-			putWsCmd,
-			getWsCmd,
 			registerWsCmd,
 			splitWsCmd,
 		}

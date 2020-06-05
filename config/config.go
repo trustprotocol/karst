@@ -110,6 +110,6 @@ func WriteDefault(configFilePath string) {
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
 		logger.Error("Fatal error in creating karst configuration file: %s\n", err)
-		panic(err)
+		os.Exit(-1)
 	}
 }

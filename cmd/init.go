@@ -27,22 +27,22 @@ var initCmd = &cobra.Command{
 		} else {
 			if err := os.MkdirAll(karstPaths.KarstPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst directory: %s", err)
-				panic(err)
+				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.FilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst files directory: %s", err)
-				panic(err)
+				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.TempFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst temp files directory: %s", err)
-				panic(err)
+				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.DbPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst db directory: %s", err)
-				panic(err)
+				os.Exit(-1)
 			}
 
 			config.WriteDefault(karstPaths.ConfigFilePath)

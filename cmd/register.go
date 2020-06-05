@@ -45,7 +45,7 @@ var registerWsCmd = &wscmd.WsCmd{
 		if karstAddr == "" {
 			errString := "Provider's address is needed"
 			logger.Error(errString)
-			return GetReturnMessage{
+			return RegisterReturnMsg{
 				Info:   errString,
 				Status: 400,
 			}
