@@ -77,7 +77,7 @@ var splitWsCmd = &wscmd.WsCmd{
 		if err != nil {
 			logger.Error("%s", err)
 			fileInfo.ClearFile()
-			return PutReturnMessage{
+			return SplitReturnMsg{
 				Info:   err.Error(),
 				Status: 500,
 			}

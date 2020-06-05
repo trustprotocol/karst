@@ -44,8 +44,6 @@ var daemonCmd = &cobra.Command{
 
 		// Register cmd apis
 		var wsCommands = []*wscmd.WsCmd{
-			putWsCmd,
-			getWsCmd,
 			registerWsCmd,
 			splitWsCmd,
 		}
