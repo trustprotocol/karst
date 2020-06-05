@@ -48,8 +48,8 @@ func GetInstance() *Configuration {
 		// Read configuration
 		viper.SetConfigFile(karstPaths.ConfigFilePath)
 		if err := viper.ReadInConfig(); err != nil {
-			logger.Error("Fatal error in reading config file: %s \n", err)
-			panic(err)
+			logger.Error("Fatal error in reading config file: %s", err)
+			os.Exit(-1)
 		}
 
 		// Set configuration
@@ -57,6 +57,10 @@ func GetInstance() *Configuration {
 		config.KarstPaths = karstPaths
 		config.FilePartSize = 1 * (1 << 20) // 1 MB
 		config.BaseUrl = viper.GetString("base_url")
+		if config.BaseUrl == "" {
+			logger.Error("Need 'base_url' in config file")
+			os.Exit(-1)
+		}
 		config.TeeBaseUrl = viper.GetString("tee_base_url")
 		config.LogLevel = viper.GetString("log_level")
 		config.Crust.BaseUrl = viper.GetString("crust.base_url")
@@ -69,6 +73,8 @@ func GetInstance() *Configuration {
 		// Use configuration
 		if config.LogLevel == "debug" {
 			logger.OpenDebug()
+		} else {
+			config.LogLevel = "info"
 		}
 	})
 

@@ -34,6 +34,9 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
 - 'tee_base_url' is tee base url
 
 ## Install & Run
+
+### Install
+
 ```shell
 sudo ./install.sh # for linux
 ```
@@ -42,10 +45,20 @@ sudo ./install.sh # for linux
 go build # for mac and windows, then move the kasrt bin to commands folder or add it to PATH
 ```
 
+### Run
+
+For server
 ```shell
-karst -h
 karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
+vim ~/.karst/config.json
 karst register ws://localhost:17000 # Register your karst external address
+karst daemon
+```
+
+For client
+```shell
+karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
+vim ~/.karst/config.json
 karst daemon
 karst put /home/user/file.txt --provider 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA # put file must be absolute path
 karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --provider 5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA --file_path /home/user/store # 'file_path' must be absolute path
@@ -57,7 +70,7 @@ karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --pro
 ```json
 {
 	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
-	"password": "123",
+	"password": "123456",
 	"karst_address": "ws://localhost:17000"
 }
 ```
@@ -73,12 +86,33 @@ karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --pro
 **ps: register needs call chain's rpc, so you may wait for couple seconds waiting for chain's confirm**
 
 ## Websocket interface (for client)
+### Split /api/v0/cmd/split
+```json
+{
+	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
+	"password": "123456",
+	"file_path": "/home/crust/test/karst/10M.bin",
+	"output_path": "/home/crust/test/karst/o"
+}
+```
+
+**ps: 'file_path' and 'output_path' must be absolute path**
+
+#### Return
+```json
+{
+	"info":"Split '/home/crust/test/karst/1M.bin' successfully in 6.962893ms ! It root hash is 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef'.",
+	"merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[]}]}",
+	"status":200
+}
+```
+
 ### Put /api/v0/cmd/put
 #### Input
 ```json
 {
 	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
-	"password": "123",
+	"password": "123456",
 	"file_path": "/home/user/file.txt",
 	"provider": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA"
 }
@@ -99,10 +133,10 @@ karst get f5329577a673c190b47414ddd74ce7857ea7ac6c539d0214ef245d36b2fba322 --pro
 ```json
 {
 	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
-	"password": "123",
-	"file_hash":     "1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282",
+	"password": "123456",
+	"file_hash": "1e789508214987315bd66ed1bf7faef9e899f9cf720547ceafab6ab30a81d282",
 	"provider": "5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA",
-	"file_path":     "/home/user",
+	"file_path": "/home/user",
 }
 ```
 **ps: 'file_path' must be absolute path**
