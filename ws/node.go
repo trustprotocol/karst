@@ -72,8 +72,6 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Write err: %s", err)
 	}
 
-	logger.Debug("Right backup, waiting for node data request...")
-
 	// Get and send node data
 	for {
 		mt, message, err := c.ReadMessage()
