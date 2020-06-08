@@ -57,8 +57,8 @@ For server
 ```shell
 karst init #You can set $KARST_PATH to change karst installation location, default location is $Home/.karst/
 vim ~/.karst/config.json
-karst register ws://localhost:17000 # Register your karst external address
 karst daemon
+karst register ws://localhost:17000 # Register your karst external address
 ```
 
 For client
