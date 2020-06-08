@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"karst/chain"
+	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
+	"karst/ws"
 	"karst/wscmd"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
 
@@ -75,27 +78,96 @@ var declareWsCmd = &wscmd.WsCmd{
 			}
 		}
 
-		// Send order
-		storeOrderHash, err := chain.PlaceStorageOrder(wsc.Cfg.Crust.BaseUrl, wsc.Cfg.Crust.Backup, wsc.Cfg.Crust.Password, provider, "0x"+mt.Hash, mt.Size)
-		if err != nil {
-			errString := fmt.Sprintf("Create store order failed, err is: %s", err)
-			logger.Error(errString)
-			return declareReturnMsg{
-				Info:   errString,
-				Status: 500,
-			}
+		// Declare message
+		declareReturnMsg := declareFile(mt, provider, wsc.Cfg)
+		if declareReturnMsg.Status != 200 {
+			logger.Error(declareReturnMsg.Info)
+		} else {
+			declareReturnMsg.Info = fmt.Sprintf("Declare successfully in %s ! Store order hash is '%s'.", time.Since(timeStart), declareReturnMsg.StoreOrderHash)
+			logger.Info(declareReturnMsg.Info)
 		}
 
-		logger.Debug("Create store order '%s' success.", storeOrderHash)
-
-		// Request provider to seal file and give store proof
-
-		returnInfo := fmt.Sprintf("Declare successfully in %s ! Store order hash is '%s'.", time.Since(timeStart), storeOrderHash)
-		logger.Info(returnInfo)
-		return declareReturnMsg{
-			Info:           returnInfo,
-			StoreOrderHash: storeOrderHash,
-			Status:         200,
-		}
+		return declareReturnMsg
 	},
+}
+
+func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) declareReturnMsg {
+	// Get provider seal address
+	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	if err != nil {
+		return declareReturnMsg{
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Status: 400,
+		}
+	}
+
+	karstFileSealAddr := karstBaseAddr + "/api/v0/file/seal"
+	logger.Debug("Get file seal address '%s' of '%s' success.", karstFileSealAddr, provider)
+
+	// Send order
+	storeOrderHash, err := chain.PlaceStorageOrder(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, provider, "0x"+mt.Hash, mt.Size)
+	if err != nil {
+		return declareReturnMsg{
+			Info:   fmt.Sprintf("Create store order failed, err is: %s", err),
+			Status: 500,
+		}
+	}
+
+	logger.Debug("Create store order '%s' success.", storeOrderHash)
+
+	// Request provider to seal file and give store proof
+	logger.Info("Connecting to %s to seal file", karstFileSealAddr)
+	c, _, err := websocket.DefaultDialer.Dial(karstFileSealAddr, nil)
+	if err != nil {
+		return declareReturnMsg{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+	defer c.Close()
+
+	fileSealMessage := ws.FileSealMessage{
+		Client:         cfg.Crust.Address,
+		StoreOrderHash: storeOrderHash,
+		MerkleTree:     &mt,
+	}
+
+	fileSealMsgBytes, err := json.Marshal(fileSealMessage)
+	if err != nil {
+		return declareReturnMsg{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
+	logger.Debug("File seal message is: %s", string(fileSealMsgBytes))
+	if err = c.WriteMessage(websocket.TextMessage, fileSealMsgBytes); err != nil {
+		return declareReturnMsg{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
+	_, message, err := c.ReadMessage()
+	if err != nil {
+		return declareReturnMsg{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
+	logger.Debug("File seal return: %s", message)
+
+	fileSealReturnMessage := ws.FileSealReturnMessage{}
+	if err = json.Unmarshal(message, &fileSealReturnMessage); err != nil {
+		return declareReturnMsg{
+			Info:   fmt.Sprintf("Unmarshal json: %s", err),
+			Status: 500,
+		}
+	}
+
+	return declareReturnMsg{
+		Info:   fileSealReturnMessage.Info,
+		Status: fileSealReturnMessage.Status,
+	}
 }
