@@ -167,7 +167,8 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 	}
 
 	return declareReturnMsg{
-		Info:   fileSealReturnMessage.Info,
-		Status: fileSealReturnMessage.Status,
+		Info:           fileSealReturnMessage.Info,
+		Status:         fileSealReturnMessage.Status,
+		StoreOrderHash: storeOrderHash,
 	}
 }

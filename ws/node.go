@@ -46,8 +46,6 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debug("Recv backup message: %s, message type is %d", message, mt)
-
 	var backupMes BackupMessage
 	err = json.Unmarshal([]byte(message), &backupMes)
 	if err != nil {
@@ -80,7 +78,6 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
-			logger.Error("Read err: %s", err)
 			return
 		}
 
