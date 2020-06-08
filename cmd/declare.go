@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"karst/chain"
 	"karst/logger"
+	"karst/merkletree"
 	"karst/wscmd"
 	"time"
 
@@ -10,8 +13,9 @@ import (
 )
 
 type declareReturnMsg struct {
-	Info   string `json:"info"`
-	Status int    `json:"status"`
+	Info           string `json:"info"`
+	StoreOrderHash string `json:"store_order_hash"`
+	Status         int    `json:"status"`
 }
 
 func init() {
@@ -22,7 +26,7 @@ func init() {
 var declareWsCmd = &wscmd.WsCmd{
 	Cmd: &cobra.Command{
 		Use:   "declare [merkle_tree] [provider]",
-		Short: "Declare file to chain and request provider to generate store proof",
+		Short: "Declare file to chain",
 		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part and the 'provider' is chain address",
 		Args:  cobra.MinimumNArgs(2),
 	},
@@ -50,6 +54,17 @@ var declareWsCmd = &wscmd.WsCmd{
 			}
 		}
 
+		var mt merkletree.MerkleTreeNode
+		err := json.Unmarshal([]byte(merkleTree), &mt)
+		if err != nil || !mt.IsLegal() {
+			errString := fmt.Sprintf("The field 'merkle_tree' is illegal, err is: %s", err)
+			logger.Error(errString)
+			return declareReturnMsg{
+				Info:   errString,
+				Status: 400,
+			}
+		}
+
 		provider := args["provider"]
 		if provider == "" {
 			errString := "The field 'provider' is needed"
@@ -60,11 +75,27 @@ var declareWsCmd = &wscmd.WsCmd{
 			}
 		}
 
-		returnInfo := fmt.Sprintf("Declare successfully in %s !", time.Since(timeStart))
+		// Send order
+		storeOrderHash, err := chain.PlaceStorageOrder(wsc.Cfg.Crust.BaseUrl, wsc.Cfg.Crust.Backup, wsc.Cfg.Crust.Password, provider, "0x"+mt.Hash, mt.Size)
+		if err != nil {
+			errString := fmt.Sprintf("Create store order failed, err is: %s", err)
+			logger.Error(errString)
+			return declareReturnMsg{
+				Info:   errString,
+				Status: 500,
+			}
+		}
+
+		logger.Debug("Create store order '%s' success.", storeOrderHash)
+
+		// Request provider to seal file and give store proof
+
+		returnInfo := fmt.Sprintf("Declare successfully in %s ! Store order hash is '%s'.", time.Since(timeStart), storeOrderHash)
 		logger.Info(returnInfo)
 		return declareReturnMsg{
-			Info:   returnInfo,
-			Status: 200,
+			Info:           returnInfo,
+			StoreOrderHash: storeOrderHash,
+			Status:         200,
 		}
 	},
 }

@@ -111,7 +111,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				logger.Error("Write err: %s", err)
 			}
-			return
+			continue
 		}
 
 		err = c.WriteMessage(websocket.BinaryMessage, fileBytes)
