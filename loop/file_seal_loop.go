@@ -96,6 +96,8 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs fs.FsInterface, 
 			fileInfo.SaveToDb(db)
 			fileInfoBytes, _ := json.Marshal(fileInfo)
 			logger.Debug("File info is %s", string(fileInfoBytes))
+
+			fileInfo.ClearFile()
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 
 		default:

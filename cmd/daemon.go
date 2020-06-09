@@ -46,7 +46,7 @@ var daemonCmd = &cobra.Command{
 			defer fs.Close()
 
 			// TEE
-			tee, err := tee.NewTee(cfg.BaseUrl, cfg.Crust.Backup)
+			tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Crust.Backup)
 			if err != nil {
 				logger.Error("Fatal error in opening fastdfs: %s", err)
 				os.Exit(-1)
