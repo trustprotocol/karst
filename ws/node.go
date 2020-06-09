@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"karst/logger"
+	"karst/model"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -11,16 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type BackupMessage struct {
-	Backup string `json:"backup"`
-}
-
-type NodeDataMessage struct {
-	FileHash  string `json:"file_hash"`
-	NodeHash  string `json:"node_hash"`
-	NodeIndex uint64 `json:"node_index"`
-}
-
+// URL: /node/data
 func nodeData(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -46,7 +38,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var backupMes BackupMessage
+	var backupMes model.BackupMessage
 	err = json.Unmarshal([]byte(message), &backupMes)
 	if err != nil {
 		logger.Error("Unmarshal failed: %s", err)
@@ -85,7 +77,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 
 		logger.Debug("Recv node data get message: %s, message type is %d", message, mt)
 
-		var nodeDataMsg NodeDataMessage
+		var nodeDataMsg model.NodeDataMessage
 		err = json.Unmarshal([]byte(message), &nodeDataMsg)
 		if err != nil {
 			logger.Error("Unmarshal failed: %s", err)

@@ -85,9 +85,11 @@ func (cfg *Configuration) Show() {
 	logger.Info("KarstPath = %s", cfg.KarstPaths.KarstPath)
 	logger.Info("BaseUrl = %s", cfg.BaseUrl)
 	logger.Info("TeeBaseUrl = %s", cfg.TeeBaseUrl)
-	logger.Info("LogLevel = %s", cfg.LogLevel)
 	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
 	logger.Info("Crust.Address = %s", cfg.Crust.Address)
+	logger.Info("Fastdfs.max_conns = %d", cfg.Fastdfs.MaxConns)
+	logger.Info("Fastdfs.tracker_addrs = %s", cfg.Fastdfs.TrackerAddrs)
+	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
 func WriteDefault(configFilePath string) {

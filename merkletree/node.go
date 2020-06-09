@@ -6,10 +6,11 @@ import (
 )
 
 type MerkleTreeNode struct {
-	Hash     string           `json:"hash"`
-	Size     uint64           `json:"size"`
-	LinksNum uint64           `json:"links_num"`
-	Links    []MerkleTreeNode `json:"links"`
+	Hash      string           `json:"hash"`
+	Size      uint64           `json:"size"`
+	LinksNum  uint64           `json:"links_num"`
+	Links     []MerkleTreeNode `json:"links"`
+	StoredKey string           `json:"stored_key"`
 }
 
 func NewMerkleTreeNode(hash []byte, size uint64) *MerkleTreeNode {

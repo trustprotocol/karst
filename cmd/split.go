@@ -10,7 +10,6 @@ import (
 	"karst/merkletree"
 	"karst/model"
 	"karst/util"
-	"karst/wscmd"
 	"math"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func init() {
 	rootCmd.AddCommand(splitWsCmd.Cmd)
 }
 
-var splitWsCmd = &wscmd.WsCmd{
+var splitWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "split [file_path] [output_path]",
 		Short: "Split file to merkle tree structure",
@@ -49,7 +48,7 @@ var splitWsCmd = &wscmd.WsCmd{
 		return reqBody, nil
 	},
 	WsEndpoint: "split",
-	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
+	WsRunner: func(args map[string]string, wsc *wsCmd) interface{} {
 		timeStart := time.Now()
 		logger.Debug("Split input is %s", args)
 

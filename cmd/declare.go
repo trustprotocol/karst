@@ -7,8 +7,7 @@ import (
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
-	"karst/ws"
-	"karst/wscmd"
+	"karst/model"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,7 +25,7 @@ func init() {
 	rootCmd.AddCommand(declareWsCmd.Cmd)
 }
 
-var declareWsCmd = &wscmd.WsCmd{
+var declareWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "declare [merkle_tree] [provider]",
 		Short: "Declare file to chain",
@@ -42,7 +41,7 @@ var declareWsCmd = &wscmd.WsCmd{
 		return reqBody, nil
 	},
 	WsEndpoint: "declare",
-	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
+	WsRunner: func(args map[string]string, wsc *wsCmd) interface{} {
 		timeStart := time.Now()
 		logger.Debug("Declare input is %s", args)
 
@@ -126,7 +125,7 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 	}
 	defer c.Close()
 
-	fileSealMessage := ws.FileSealMessage{
+	fileSealMessage := model.FileSealMessage{
 		Client:         cfg.Crust.Address,
 		StoreOrderHash: storeOrderHash,
 		MerkleTree:     &mt,
@@ -158,7 +157,7 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 
 	logger.Debug("File seal return: %s", message)
 
-	fileSealReturnMessage := ws.FileSealReturnMessage{}
+	fileSealReturnMessage := model.FileSealReturnMessage{}
 	if err = json.Unmarshal(message, &fileSealReturnMessage); err != nil {
 		return declareReturnMsg{
 			Info:   fmt.Sprintf("Unmarshal json: %s", err),

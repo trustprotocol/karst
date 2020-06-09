@@ -67,7 +67,7 @@ karst init #You can set $KARST_PATH to change karst installation location, defau
 vim ~/.karst/config.json
 karst daemon
 karst split /home/crust/test/karst/1M.bin /home/crust/test/karst/output
-karst declare "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[]}]}" 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
+karst declare "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}" 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
 ```
 
 ## Websocket interface (for provider)
@@ -108,7 +108,7 @@ karst declare "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def
 ```json
 {
 	"info":"Split '/home/crust/test/karst/1M.bin' successfully in 6.962893ms ! It root hash is 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef'.",
-	"merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[]}]}",
+	"merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}",
 	"status":200
 }
 ```

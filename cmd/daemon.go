@@ -4,8 +4,9 @@ import (
 	"karst/config"
 	"karst/fs"
 	"karst/logger"
+	"karst/loop"
+	"karst/tee"
 	"karst/ws"
-	"karst/wscmd"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -33,31 +34,45 @@ var daemonCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// FS
-		// TODO: Support mulitable file system
-		fs, err := fs.OpenFastdfs(cfg)
-		if err != nil {
-			logger.Error("Fatal error in opening fastdfs: %s", err)
-			os.Exit(-1)
+		// Sever model
+		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
+			// FS
+			// TODO: Support mulitable file system
+			fs, err := fs.OpenFastdfs(cfg)
+			if err != nil {
+				logger.Error("Fatal error in opening fastdfs: %s", err)
+				os.Exit(-1)
+			}
+			defer fs.Close()
+
+			// TEE
+			tee, err := tee.NewTee(cfg.TeeBaseUrl, cfg.Crust.Backup)
+			if err != nil {
+				logger.Error("Fatal error in opening fastdfs: %s", err)
+				os.Exit(-1)
+			}
+
+			// File seal loop
+			loop.StartFileSealLoop(cfg, db, fs, tee)
+			logger.Info("--------- Provider model ------------")
+		} else {
+			logger.Info("---------- Client model -------------")
 		}
-		defer fs.Close()
 
 		// Register cmd apis
-		var wsCommands = []*wscmd.WsCmd{
+		var wsCommands = []*wsCmd{
 			registerWsCmd,
 			splitWsCmd,
 			declareWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db, fs, cfg)
+			wsCmd.Register(db, cfg)
 		}
 
 		// Start websocket service
-		if err := ws.StartServer(db, cfg); err != nil {
+		if err := ws.StartServer(cfg); err != nil {
 			logger.Error("%s", err)
-		} else {
-			logger.Info("Karst daemon successfully!")
 		}
 	},
 }
