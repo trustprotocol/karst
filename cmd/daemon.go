@@ -46,6 +46,7 @@ var daemonCmd = &cobra.Command{
 		var wsCommands = []*wscmd.WsCmd{
 			registerWsCmd,
 			splitWsCmd,
+			declareWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
