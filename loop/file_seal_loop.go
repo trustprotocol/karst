@@ -1,29 +1,28 @@
 package loop
 
 import (
-	"context"
 	"fmt"
 	"karst/model"
 	"time"
 )
 
 const (
-	fileSealJobQueueLimit = 100
+	fileSealJobQueueLimit = 1000
 )
 
-var StopFileSealLoop context.CancelFunc
-var ctx context.Context
+var sealJobs chan model.FileSealMessage = nil
 
 func StartFileSealLoop() {
 	// Seal jobs queue
-	sealJobs := make(chan model.FileSealMessage, fileSealJobQueueLimit)
-	// Used to pause loop
-	ctx, StopFileSealLoop = context.WithCancel(context.Background())
-
-	go fileSealLoop(sealJobs, ctx)
+	sealJobs = make(chan model.FileSealMessage, fileSealJobQueueLimit)
+	go fileSealLoop(sealJobs)
 }
 
-func TryEnqueueFileSealJob(job model.FileSealMessage, sealJobs chan model.FileSealMessage) bool {
+func TryEnqueueFileSealJob(job model.FileSealMessage) bool {
+	if sealJobs == nil {
+		return false
+	}
+
 	select {
 	case sealJobs <- job:
 		return true
@@ -32,14 +31,14 @@ func TryEnqueueFileSealJob(job model.FileSealMessage, sealJobs chan model.FileSe
 	}
 }
 
-func fileSealLoop(sealJobs <-chan model.FileSealMessage, ctx context.Context) {
+func fileSealLoop(sealJobs <-chan model.FileSealMessage) {
 	for {
 		select {
-		case <-ctx.Done():
-			return
 		case job := <-sealJobs:
 			fmt.Printf("File seal job: %s \n", job.StoreOrderHash)
 			time.Sleep(1 * time.Second)
+		default:
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 }

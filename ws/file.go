@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"karst/chain"
 	"karst/logger"
+	"karst/loop"
 	"karst/model"
 	"net/http"
 
@@ -80,6 +81,16 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("The merkle tree of this file '%s' is legal", fileSealMsg.MerkleTree.Hash)
 
+	// Put message into seal loop
+	if !loop.TryEnqueueFileSealJob(*fileSealMsg) {
+		fileSealReturnMsg.Info = "The seal queue is full or the seal loop doesn't start."
+		logger.Error(fileSealReturnMsg.Info)
+		fileSealReturnMsg.Status = 500
+		fileSealReturnMsg.SendBack(c)
+		return
+	}
+
+	// Return success
 	fileSealReturnMsg.Info = fmt.Sprintf(
 		"File seal request for '%s' has been accept, storage order is '%s', the provider will seal it in backend",
 		fileSealMsg.MerkleTree.Hash,

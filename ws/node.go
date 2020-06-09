@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// URL: /node/data
 func nodeData(w http.ResponseWriter, r *http.Request) {
 	// Upgrade http to ws
 	c, err := upgrader.Upgrade(w, r, nil)
