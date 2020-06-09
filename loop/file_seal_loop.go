@@ -87,7 +87,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs fs.FsInterface, 
 
 			// Save sealed file into fs
 			if err = putWholeFileIntoFs(fileInfo, fs); err != nil {
-				logger.Error("Get whole file failed, error is %s", err)
+				logger.Error("Put whole file failed, error is %s", err)
 				fileInfo.ClearFile()
 				continue
 			}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -50,13 +51,11 @@ func newFileInfo(fileName string, buffer []byte, fileExtName string) (*fileInfo,
 			return nil, fmt.Errorf("file %q size is zero", fileName)
 		}
 		var fileExtName string
-		index := strings.LastIndexByte(fileName, '.')
-		if index != -1 {
-			fileExtName = fileName[index+1:]
-			if len(fileExtName) > 6 {
-				fileExtName = fileExtName[:6]
-			}
+		fileExtName = path.Ext(fileName)
+		if len(fileExtName) > 6 {
+			fileExtName = fileExtName[:6]
 		}
+
 		return &fileInfo{
 			fileSize:    stat.Size(),
 			file:        file,
