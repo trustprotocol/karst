@@ -2,39 +2,43 @@ package loop
 
 import (
 	"fmt"
+	"karst/fs"
 	"karst/model"
+	"karst/tee"
 	"time"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const (
 	fileSealJobQueueLimit = 1000
 )
 
-var sealJobs chan model.FileSealMessage = nil
+var fileSealJobs chan model.FileSealMessage = nil
 
-func StartFileSealLoop() {
+func StartFileSealLoop(db *leveldb.DB, fs fs.FsInterface, tee *tee.Tee) {
 	// Seal jobs queue
-	sealJobs = make(chan model.FileSealMessage, fileSealJobQueueLimit)
-	go fileSealLoop(sealJobs)
+	fileSealJobs = make(chan model.FileSealMessage, fileSealJobQueueLimit)
+	go fileSealLoop(db, fs, tee)
 }
 
 func TryEnqueueFileSealJob(job model.FileSealMessage) bool {
-	if sealJobs == nil {
+	if fileSealJobs == nil {
 		return false
 	}
 
 	select {
-	case sealJobs <- job:
+	case fileSealJobs <- job:
 		return true
 	default:
 		return false
 	}
 }
 
-func fileSealLoop(sealJobs <-chan model.FileSealMessage) {
+func fileSealLoop(db *leveldb.DB, fs fs.FsInterface, tee *tee.Tee) {
 	for {
 		select {
-		case job := <-sealJobs:
+		case job := <-fileSealJobs:
 			fmt.Printf("File seal job: %s \n", job.StoreOrderHash)
 			time.Sleep(1 * time.Second)
 		default:

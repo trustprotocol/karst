@@ -5,6 +5,7 @@ import (
 	"karst/fs"
 	"karst/logger"
 	"karst/loop"
+	"karst/tee"
 	"karst/ws"
 	"os"
 
@@ -35,7 +36,6 @@ var daemonCmd = &cobra.Command{
 
 		// Sever model
 		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
-
 			// FS
 			// TODO: Support mulitable file system
 			fs, err := fs.OpenFastdfs(cfg)
@@ -45,9 +45,18 @@ var daemonCmd = &cobra.Command{
 			}
 			defer fs.Close()
 
+			// TEE
+			tee, err := tee.NewTee(cfg.BaseUrl, cfg.Crust.Backup)
+			if err != nil {
+				logger.Error("Fatal error in opening fastdfs: %s", err)
+				os.Exit(-1)
+			}
+
 			// File seal loop
-			loop.StartFileSealLoop()
-			logger.Info("Provider model started!")
+			loop.StartFileSealLoop(db, fs, tee)
+			logger.Info("--------- Provider model ------------")
+		} else {
+			logger.Info("---------- Client model -------------")
 		}
 
 		// Register cmd apis
@@ -62,10 +71,8 @@ var daemonCmd = &cobra.Command{
 		}
 
 		// Start websocket service
-		if err := ws.StartServer(db, cfg); err != nil {
+		if err := ws.StartServer(cfg); err != nil {
 			logger.Error("%s", err)
-		} else {
-			logger.Info("Karst daemon successfully!")
 		}
 	},
 }
