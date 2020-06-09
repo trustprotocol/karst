@@ -53,7 +53,7 @@ var daemonCmd = &cobra.Command{
 			}
 
 			// File seal loop
-			loop.StartFileSealLoop(db, fs, tee)
+			loop.StartFileSealLoop(cfg, db, fs, tee)
 			logger.Info("--------- Provider model ------------")
 		} else {
 			logger.Info("---------- Client model -------------")
