@@ -75,22 +75,22 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	}
 	logger.Debug("Recv: %s", message)
 
-	var sealedMes sealedMessage
-	err = json.Unmarshal([]byte(message), &sealedMes)
+	var sealedMsg sealedMessage
+	err = json.Unmarshal([]byte(message), &sealedMsg)
 	if err != nil {
 		return nil, "", fmt.Errorf("Unmarshal seal result failed: %s", err)
 	}
 
-	if sealedMes.Status != 200 {
-		return nil, "", fmt.Errorf("Seal failed, error code is %d", sealedMes.Status)
+	if sealedMsg.Status != 200 {
+		return nil, "", fmt.Errorf("Seal failed, error code is %d", sealedMsg.Status)
 	}
 
 	var merkleTreeSealed merkletree.MerkleTreeNode
-	if err = json.Unmarshal([]byte(sealedMes.Body), &merkleTreeSealed); err != nil {
+	if err = json.Unmarshal([]byte(sealedMsg.Body), &merkleTreeSealed); err != nil {
 		return nil, "", fmt.Errorf("Unmarshal sealed merkle tree failed: %s", err)
 	}
 
-	return &merkleTreeSealed, sealedMes.Path, nil
+	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
 func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) {

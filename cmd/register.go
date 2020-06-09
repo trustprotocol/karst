@@ -57,7 +57,7 @@ var registerWsCmd = &wsCmd{
 			logger.Error("Register to crust failed, error is: %s", registerReturnMsg.Info)
 			return registerReturnMsg
 		} else {
-			registerReturnMsg.Info = fmt.Sprintf("Register '%s' successful in %s ! You can check it on crust.", karstAddr, time.Since(timeStart))
+			registerReturnMsg.Info = fmt.Sprintf("Register '%s' successfully in %s ! You can check it on crust.", karstAddr, time.Since(timeStart))
 			return registerReturnMsg
 		}
 	},
