@@ -4,8 +4,8 @@ import (
 	"karst/config"
 	"karst/fs"
 	"karst/logger"
+	"karst/loop"
 	"karst/ws"
-	"karst/wscmd"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -33,24 +33,32 @@ var daemonCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// FS
-		// TODO: Support mulitable file system
-		fs, err := fs.OpenFastdfs(cfg)
-		if err != nil {
-			logger.Error("Fatal error in opening fastdfs: %s", err)
-			os.Exit(-1)
+		// Sever model
+		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
+
+			// FS
+			// TODO: Support mulitable file system
+			fs, err := fs.OpenFastdfs(cfg)
+			if err != nil {
+				logger.Error("Fatal error in opening fastdfs: %s", err)
+				os.Exit(-1)
+			}
+			defer fs.Close()
+
+			// File seal loop
+			loop.StartFileSealLoop()
+			logger.Info("Provider model started!")
 		}
-		defer fs.Close()
 
 		// Register cmd apis
-		var wsCommands = []*wscmd.WsCmd{
+		var wsCommands = []*wsCmd{
 			registerWsCmd,
 			splitWsCmd,
 			declareWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db, fs, cfg)
+			wsCmd.Register(db, cfg)
 		}
 
 		// Start websocket service

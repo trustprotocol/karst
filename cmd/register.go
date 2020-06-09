@@ -5,7 +5,6 @@ import (
 	"karst/chain"
 	"karst/config"
 	"karst/logger"
-	"karst/wscmd"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -21,7 +20,7 @@ func init() {
 	rootCmd.AddCommand(registerWsCmd.Cmd)
 }
 
-var registerWsCmd = &wscmd.WsCmd{
+var registerWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "register [karst_address]",
 		Short: "Register to chain as provider",
@@ -36,7 +35,7 @@ var registerWsCmd = &wscmd.WsCmd{
 		return reqBody, nil
 	},
 	WsEndpoint: "register",
-	WsRunner: func(args map[string]string, wsc *wscmd.WsCmd) interface{} {
+	WsRunner: func(args map[string]string, wsc *wsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
 		logger.Debug("Register input is %s", args)

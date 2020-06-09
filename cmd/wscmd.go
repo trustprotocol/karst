@@ -1,9 +1,8 @@
-package wscmd
+package cmd
 
 import (
 	"encoding/json"
 	"karst/config"
-	"karst/fs"
 	"karst/logger"
 	"net/http"
 
@@ -12,17 +11,16 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-type WsCmd struct {
+type wsCmd struct {
 	Db         *leveldb.DB
 	Cfg        *config.Configuration
-	Fs         fs.FsInterface
 	Cmd        *cobra.Command
 	WsEndpoint string
 	Connecter  func(cmd *cobra.Command, args []string) (map[string]string, error)
-	WsRunner   func(args map[string]string, wsc *WsCmd) interface{}
+	WsRunner   func(args map[string]string, wsc *wsCmd) interface{}
 }
 
-func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
+func (wsc *wsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
 	wsc.Cfg = config.GetInstance()
 	// Connect to ws
 	url := "ws://" + wsc.Cfg.BaseUrl + "/api/v0/cmd/" + wsc.WsEndpoint
@@ -64,11 +62,11 @@ func (wsc *WsCmd) connectCmdAndWsFunc(cmd *cobra.Command, args []string) {
 	logger.Info("%s", message)
 }
 
-func (wsc *WsCmd) ConnectCmdAndWs() {
+func (wsc *wsCmd) ConnectCmdAndWs() {
 	wsc.Cmd.Run = wsc.connectCmdAndWsFunc
 }
 
-func (wsc *WsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
+func (wsc *wsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 	// Get ws upgrader
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -122,7 +120,7 @@ func (wsc *WsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 	wsc.sendBack(c, wsc.WsRunner(args, wsc))
 }
 
-func (wsc *WsCmd) sendBack(c *websocket.Conn, back interface{}) {
+func (wsc *wsCmd) sendBack(c *websocket.Conn, back interface{}) {
 	backBytes, err := json.Marshal(back)
 	if err != nil {
 		logger.Error("%s", err)
@@ -136,9 +134,8 @@ func (wsc *WsCmd) sendBack(c *websocket.Conn, back interface{}) {
 	}
 }
 
-func (wsc *WsCmd) Register(db *leveldb.DB, fs fs.FsInterface, cfg *config.Configuration) {
+func (wsc *wsCmd) Register(db *leveldb.DB, cfg *config.Configuration) {
 	wsc.Db = db
 	wsc.Cfg = cfg
-	wsc.Fs = fs
 	http.HandleFunc("/api/v0/cmd/"+wsc.WsEndpoint, wsc.handleFunc)
 }
