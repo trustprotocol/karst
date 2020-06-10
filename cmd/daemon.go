@@ -34,6 +34,17 @@ var daemonCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Register cmd apis
+		var wsCommands = []*wsCmd{
+			registerWsCmd,
+			splitWsCmd,
+			declareWsCmd,
+		}
+
+		for _, wsCmd := range wsCommands {
+			wsCmd.Register(db, cfg)
+		}
+
 		// Sever model
 		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
 			// FS
@@ -54,25 +65,18 @@ var daemonCmd = &cobra.Command{
 
 			// File seal loop
 			loop.StartFileSealLoop(cfg, db, fs, tee)
+
 			logger.Info("--------- Provider model ------------")
+			if err := ws.StartServer(cfg, fs, db); err != nil {
+				logger.Error("%s", err)
+			}
 		} else {
 			logger.Info("---------- Client model -------------")
+			// Start websocket service
+			if err := ws.StartServer(cfg, nil, db); err != nil {
+				logger.Error("%s", err)
+			}
 		}
 
-		// Register cmd apis
-		var wsCommands = []*wsCmd{
-			registerWsCmd,
-			splitWsCmd,
-			declareWsCmd,
-		}
-
-		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db, cfg)
-		}
-
-		// Start websocket service
-		if err := ws.StartServer(cfg); err != nil {
-			logger.Error("%s", err)
-		}
 	},
 }

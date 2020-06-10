@@ -2,12 +2,9 @@ package ws
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"karst/logger"
 	"karst/model"
 	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gorilla/websocket"
 )
@@ -88,12 +85,41 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nodeFilePath := filepath.FromSlash(cfg.KarstPaths.FilesPath + "/" + nodeDataMsg.FileHash + "/" + strconv.FormatUint(nodeDataMsg.NodeIndex, 10) + "_" + nodeDataMsg.NodeHash)
-		logger.Debug("Try to get '%s' file", nodeFilePath)
+		// Get node of file
+		if fsm == nil {
+			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))
+			if err != nil {
+				logger.Error("Write err: %s", err)
+			}
+			continue
+		}
 
-		fileBytes, err := ioutil.ReadFile(nodeFilePath)
+		fileInfo, err := model.GetFileInfoFromDb(nodeDataMsg.FileHash, db)
 		if err != nil {
-			logger.Error("Read file '%s' filed: %s", nodeFilePath, err)
+			logger.Error("Read file info of '%s' failed: %s", nodeDataMsg.FileHash, err)
+			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))
+			if err != nil {
+				logger.Error("Write err: %s", err)
+			}
+			continue
+		}
+
+		nodeInfo := fileInfo.MerkleTreeSealed.Links[nodeDataMsg.NodeIndex]
+		nodeInfoBytes, _ := json.Marshal(nodeInfo)
+		logger.Debug("Node info in db: %s", string(nodeInfoBytes))
+
+		if nodeInfo.Hash != nodeDataMsg.NodeHash {
+			logger.Error("Bad request, request node hash is '%s', db node hash is '%s'", nodeDataMsg.NodeHash, nodeInfo.Hash)
+			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+			if err != nil {
+				logger.Error("Write err: %s", err)
+			}
+			continue
+		}
+
+		fileBytes, err := fsm.GetToBuffer(nodeInfo.StoredKey, nodeInfo.Size)
+		if err != nil {
+			logger.Error("Read file '%s' failed: %s", nodeInfo.Hash, err)
 			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))
 			if err != nil {
 				logger.Error("Write err: %s", err)

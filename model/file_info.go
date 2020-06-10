@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"karst/merkletree"
 	"os"
 
@@ -38,13 +39,19 @@ func (fileInfo *FileInfo) SaveToDb(db *leveldb.DB) {
 	}
 }
 
-func GetFileInfoFromDb(hash string, db *leveldb.DB) *FileInfo {
+func GetFileInfoFromDb(hash string, db *leveldb.DB) (*FileInfo, error) {
 	if ok, _ := db.Has([]byte(hash), nil); !ok {
-		return nil
+		return nil, fmt.Errorf("This file '%s' not stored in db", hash)
 	}
 
-	fileInfoBytes, _ := db.Get([]byte(hash), nil)
+	fileInfoBytes, err := db.Get([]byte(hash), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	fileInfo := FileInfo{}
-	_ = json.Unmarshal(fileInfoBytes, &fileInfo)
-	return &fileInfo
+	if err = json.Unmarshal(fileInfoBytes, &fileInfo); err != nil {
+		return nil, err
+	}
+	return &fileInfo, nil
 }
