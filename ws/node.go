@@ -104,6 +104,15 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		if nodeDataMsg.NodeIndex > fileInfo.MerkleTreeSealed.LinksNum-1 {
+			logger.Error("Bad request, node index is out of range")
+			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+			if err != nil {
+				logger.Error("Write err: %s", err)
+			}
+			continue
+		}
+
 		nodeInfo := fileInfo.MerkleTreeSealed.Links[nodeDataMsg.NodeIndex]
 		nodeInfoBytes, _ := json.Marshal(nodeInfo)
 		logger.Debug("Node info in db: %s", string(nodeInfoBytes))
