@@ -39,6 +39,7 @@ var daemonCmd = &cobra.Command{
 			registerWsCmd,
 			splitWsCmd,
 			declareWsCmd,
+			listWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
@@ -77,6 +78,5 @@ var daemonCmd = &cobra.Command{
 				logger.Error("%s", err)
 			}
 		}
-
 	},
 }

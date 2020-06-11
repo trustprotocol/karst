@@ -54,8 +54,20 @@ var listWsCmd = &wsCmd{
 		fileHash := args["file_hash"]
 		if fileHash == "" {
 			// List all files
+			fileStatusList, err := model.GetFileStatusList(wsc.Db)
+			if err != nil {
+				listReturnMsg := listReturnMessage{
+					Info:   err.Error(),
+					Files:  make([]model.FileStatus, 0),
+					Status: 500,
+				}
+				logger.Error(listReturnMsg.Info)
+				return listReturnMsg
+			}
+
 			listReturnMsg := listReturnMessage{
 				Info:   fmt.Sprintf("List all files successfully in %s !", time.Since(timeStart)),
+				Files:  fileStatusList,
 				Status: 200,
 			}
 			logger.Info(listReturnMsg.Info)

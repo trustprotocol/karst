@@ -50,7 +50,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs fs.FsInterface, 
 			logger.Info("File seal job: client -> %s, store order hash -> %s, file hash -> %s\n", job.Client, job.StoreOrderHash, job.MerkleTree.Hash)
 
 			// Check if the file has been stored locally
-			if ok, _ := db.Has([]byte(job.MerkleTree.Hash), nil); ok {
+			if ok, _ := db.Has([]byte(model.FileFlagInDb+job.MerkleTree.Hash), nil); ok {
 				logger.Info("The file '%s' has been stored already", job.MerkleTree.Hash)
 				continue
 			}

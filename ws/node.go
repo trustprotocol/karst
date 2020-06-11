@@ -94,7 +94,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fileInfo, err := model.GetFileInfoFromDb(nodeDataMsg.FileHash, db)
+		fileInfo, err := model.GetFileInfoFromDb(nodeDataMsg.FileHash, db, model.SealedFileFlagInDb)
 		if err != nil {
 			logger.Error("Read file info of '%s' failed: %s", nodeDataMsg.FileHash, err)
 			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))
