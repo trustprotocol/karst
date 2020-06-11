@@ -23,6 +23,6 @@ func NewDiskUsage(path string) (*DiskStatus, error) {
 	return &DiskStatus{
 		All:  fs.Blocks * uint64(fs.Bsize),
 		Free: fs.Bfree * uint64(fs.Bsize),
-		Used: disk.All - disk.Free,
+		Used: (fs.Blocks - fs.Bfree) * uint64(fs.Bsize),
 	}, nil
 }

@@ -22,12 +22,12 @@ var initCmd = &cobra.Command{
 		karstPaths := utils.GetKarstPaths()
 
 		// Create directory and default config
-		if utils.IsDirOrFileExist(karstPaths.InitPath) && utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
+		if utils.IsDirOrFileExist(karstPaths.KarstPath) && utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
 			logger.Info("Karst has been installed in this directory: %s", karstPaths.KarstPath)
 		} else {
-			diskUsage, err := utils.NewDiskUsage(karstPaths.KarstPath)
+			diskUsage, err := utils.NewDiskUsage(karstPaths.InitPath)
 			if err != nil {
-				logger.Error("Fatal error in check init directory: %s", err)
+				logger.Error("Fatal error in check init directory '%s': %s", karstPaths.InitPath, err)
 				os.Exit(-1)
 			}
 
