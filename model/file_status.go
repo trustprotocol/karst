@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"karst/logger"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -14,17 +13,16 @@ type FileStatus struct {
 	SealedSize uint64 `json:"sealed_size"`
 }
 
-func GetFileStatusList(db *leveldb.DB) ([]FileStatus, error) {
-	fileStatusList := make([]FileStatus, 0)
+func GetFileStatusList(db *leveldb.DB) ([]*FileStatus, error) {
+	fileStatusList := make([]*FileStatus, 0)
 	iter := db.NewIterator(nil, nil)
 	prefix := []byte(SealedFileFlagInDb)
 	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
-		logger.Debug("key: %s, value: %s", string(iter.Key()), string(iter.Value()))
 		fileInfo := FileInfo{}
 		if err := json.Unmarshal(iter.Value(), &fileInfo); err != nil {
 			return nil, err
 		}
-		fileStatusList = append(fileStatusList, FileStatus{
+		fileStatusList = append(fileStatusList, &FileStatus{
 			Hash:       fileInfo.MerkleTree.Hash,
 			Size:       fileInfo.MerkleTree.Size,
 			SealedHash: fileInfo.MerkleTreeSealed.Hash,

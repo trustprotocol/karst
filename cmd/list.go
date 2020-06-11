@@ -10,14 +10,15 @@ import (
 )
 
 type listReturnMessage struct {
-	Info   string             `json:"info"`
-	Files  []model.FileStatus `json:"files"`
-	Status int                `json:"status"`
+	Info   string              `json:"info"`
+	Files  []*model.FileStatus `json:"files"`
+	Status int                 `json:"status"`
 }
 
 type listFileReturnMessage struct {
-	Info   string `json:"info"`
-	Status int    `json:"status"`
+	Info   string          `json:"info"`
+	File   *model.FileInfo `json:"file"`
+	Status int             `json:"status"`
 }
 
 func init() {
@@ -58,7 +59,7 @@ var listWsCmd = &wsCmd{
 			if err != nil {
 				listReturnMsg := listReturnMessage{
 					Info:   err.Error(),
-					Files:  make([]model.FileStatus, 0),
+					Files:  make([]*model.FileStatus, 0),
 					Status: 500,
 				}
 				logger.Error(listReturnMsg.Info)
@@ -73,9 +74,21 @@ var listWsCmd = &wsCmd{
 			logger.Info(listReturnMsg.Info)
 			return listReturnMsg
 		} else {
+			fileInfo, err := model.GetFileInfoFromDb(fileHash, wsc.Db, model.FileFlagInDb)
+			if err != nil {
+				listFileReturnMsg := listFileReturnMessage{
+					Info:   err.Error(),
+					File:   nil,
+					Status: 400,
+				}
+				logger.Error(listFileReturnMsg.Info)
+				return listFileReturnMsg
+			}
+
 			// List file
 			listFileReturnMsg := listFileReturnMessage{
 				Info:   fmt.Sprintf("List file '%s' successfully in %s !", fileHash, time.Since(timeStart)),
+				File:   fileInfo,
 				Status: 200,
 			}
 			logger.Info(listFileReturnMsg.Info)

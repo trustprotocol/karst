@@ -15,9 +15,9 @@ const (
 )
 
 type FileInfo struct {
-	MerkleTree       *merkletree.MerkleTreeNode
-	MerkleTreeSealed *merkletree.MerkleTreeNode
-	StoredPath       string
+	MerkleTree       *merkletree.MerkleTreeNode `json:"merkle_tree"`
+	MerkleTreeSealed *merkletree.MerkleTreeNode `json:"merkle_tree_sealed"`
+	StoredPath       string                     `json:"-"`
 }
 
 func (fileInfo *FileInfo) ClearFile() {
