@@ -35,3 +35,7 @@ func (this *Fastdfs) Get(key string, outFileName string) error {
 func (this *Fastdfs) Delete(key string) error {
 	return this.client.DeleteFile(key)
 }
+
+func (this *Fastdfs) GetToBuffer(key string, size uint64) ([]byte, error) {
+	return this.client.DownloadToBuffer(key, 0, int64(size))
+}

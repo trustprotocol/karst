@@ -2,16 +2,22 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"karst/merkletree"
 	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+const (
+	FileFlagInDb       = "file"
+	SealedFileFlagInDb = "sealed_file"
+)
+
 type FileInfo struct {
-	MerkleTree       *merkletree.MerkleTreeNode
-	MerkleTreeSealed *merkletree.MerkleTreeNode
-	StoredPath       string
+	MerkleTree       *merkletree.MerkleTreeNode `json:"merkle_tree"`
+	MerkleTreeSealed *merkletree.MerkleTreeNode `json:"merkle_tree_sealed"`
+	StoredPath       string                     `json:"-"`
 }
 
 func (fileInfo *FileInfo) ClearFile() {
@@ -33,18 +39,25 @@ func (fileInfo *FileInfo) ClearDb(db *leveldb.DB) {
 func (fileInfo *FileInfo) SaveToDb(db *leveldb.DB) {
 	if fileInfo.MerkleTree != nil || fileInfo.MerkleTreeSealed != nil {
 		fileInfoBytes, _ := json.Marshal(fileInfo)
-		_ = db.Put([]byte(fileInfo.MerkleTree.Hash), fileInfoBytes, nil)
-		_ = db.Put([]byte(fileInfo.MerkleTreeSealed.Hash), fileInfoBytes, nil)
+		_ = db.Put([]byte(FileFlagInDb+fileInfo.MerkleTree.Hash), fileInfoBytes, nil)
+		_ = db.Put([]byte(SealedFileFlagInDb+fileInfo.MerkleTreeSealed.Hash), fileInfoBytes, nil)
 	}
 }
 
-func GetFileInfoFromDb(hash string, db *leveldb.DB) *FileInfo {
-	if ok, _ := db.Has([]byte(hash), nil); !ok {
-		return nil
+func GetFileInfoFromDb(hash string, db *leveldb.DB, flag string) (*FileInfo, error) {
+	key := flag + hash
+	if ok, _ := db.Has([]byte(key), nil); !ok {
+		return nil, fmt.Errorf("This file '%s' not stored in db", hash)
 	}
 
-	fileInfoBytes, _ := db.Get([]byte(hash), nil)
+	fileInfoBytes, err := db.Get([]byte(key), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	fileInfo := FileInfo{}
-	_ = json.Unmarshal(fileInfoBytes, &fileInfo)
-	return &fileInfo
+	if err = json.Unmarshal(fileInfoBytes, &fileInfo); err != nil {
+		return nil, err
+	}
+	return &fileInfo, nil
 }
