@@ -14,6 +14,7 @@ import (
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type KarstPaths struct {
+	InitPath       string
 	KarstPath      string
 	ConfigFilePath string
 	FilesPath      string
@@ -23,6 +24,7 @@ type KarstPaths struct {
 
 func GetKarstPaths() *KarstPaths {
 	karstPaths := &KarstPaths{}
+	karstPaths.InitPath = filepath.FromSlash(os.Getenv("HOME"))
 	karstPaths.KarstPath = filepath.FromSlash(os.Getenv("HOME") + "/.karst")
 	if karstTmpPath := os.Getenv("KARST_PATH"); karstTmpPath != "" {
 		karstPaths.KarstPath = karstTmpPath

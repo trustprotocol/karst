@@ -9,12 +9,12 @@ import (
 )
 
 type DiskStatus struct {
-	All  uint64
-	Used uint64
-	Free uint64
+	All  uint64 `json:"all"`
+	Used uint64 `json:"used"`
+	Free uint64 `json:"free"`
 }
 
-func DiskUsage(path string) (disk DiskStatus) {
+func NewDiskUsage(path string) (*DiskStatus, error) {
 	h := windows.MustLoadDLL("kernel32.dll")
 	c := h.MustFindProc("GetDiskFreeSpaceExW")
 	lpFreeBytesAvailable := uint64(0)
@@ -24,8 +24,10 @@ func DiskUsage(path string) (disk DiskStatus) {
 		uintptr(unsafe.Pointer(&lpFreeBytesAvailable)),
 		uintptr(unsafe.Pointer(&lpTotalNumberOfBytes)),
 		uintptr(unsafe.Pointer(&lpTotalNumberOfFreeBytes)))
-	disk.All = lpTotalNumberOfBytes
-	disk.Free = lpTotalNumberOfFreeBytes
-	disk.Used = lpFreeBytesAvailable
-	return
+
+	return &DiskStatus{
+		All:  lpTotalNumberOfBytes,
+		Free: lpTotalNumberOfFreeBytes,
+		Used: lpFreeBytesAvailable,
+	}, nil
 }

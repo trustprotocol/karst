@@ -22,11 +22,17 @@ var initCmd = &cobra.Command{
 		karstPaths := utils.GetKarstPaths()
 
 		// Create directory and default config
-		if utils.IsDirOrFileExist(karstPaths.KarstPath) && utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
+		if utils.IsDirOrFileExist(karstPaths.InitPath) && utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
 			logger.Info("Karst has been installed in this directory: %s", karstPaths.KarstPath)
 		} else {
-			if utils.DiskUsage(karstPaths.KarstPath).Free <= utils.InitPathMinimalCapacity {
-				logger.Error("Minimum hard disk space %dG is required, the '%s' only has %dG !", utils.InitPathMinimalCapacity/utils.GB, karstPaths.KarstPath, utils.DiskUsage(karstPaths.KarstPath).Free/utils.GB)
+			diskUsage, err := utils.NewDiskUsage(karstPaths.KarstPath)
+			if err != nil {
+				logger.Error("Fatal error in check init directory: %s", err)
+				os.Exit(-1)
+			}
+
+			if diskUsage.Free <= utils.InitPathMinimalCapacity {
+				logger.Error("Minimum hard disk space %dG is required, the '%s' only has %dG !", utils.InitPathMinimalCapacity/utils.GB, karstPaths.InitPath, diskUsage.Free/utils.GB)
 				os.Exit(-1)
 			}
 
