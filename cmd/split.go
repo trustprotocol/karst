@@ -9,7 +9,7 @@ import (
 	"karst/logger"
 	"karst/merkletree"
 	"karst/model"
-	"karst/util"
+	"karst/utils"
 	"math"
 	"os"
 	"path/filepath"
@@ -167,7 +167,7 @@ func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*
 	fileMerkleTree := merkletree.CreateMerkleTree(partHashs, partSizes)
 	fileStorePathInHash := filepath.FromSlash(outputPath + "/" + fileMerkleTree.Hash)
 
-	if !util.IsDirOrFileExist(fileStorePathInHash) {
+	if !utils.IsDirOrFileExist(fileStorePathInHash) {
 		if err = os.Rename(fileInfo.StoredPath, fileStorePathInHash); err != nil {
 			return fileInfo, fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", fileInfo.StoredPath, fileStorePathInHash, err)
 		} else {

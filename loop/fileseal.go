@@ -8,7 +8,7 @@ import (
 	"karst/merkletree"
 	"karst/model"
 	"karst/tee"
-	"karst/util"
+	"karst/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -57,7 +57,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs fs.FsInterface, 
 
 			// Create file directory
 			fileStorePath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + job.MerkleTree.Hash)
-			if util.IsDirOrFileExist(fileStorePath) {
+			if utils.IsDirOrFileExist(fileStorePath) {
 				logger.Info("The file '%s' is being processed", job.MerkleTree.Hash)
 				continue
 			}

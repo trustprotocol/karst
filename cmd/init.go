@@ -3,7 +3,7 @@ package cmd
 import (
 	"karst/config"
 	"karst/logger"
-	"karst/util"
+	"karst/utils"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,12 +19,23 @@ var initCmd = &cobra.Command{
 	Long:  "Initialize karst directory structure and basic configuration, it will be installed in $HOME/.karst by default, set KARST_PATH to change installation directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Get base karst paths
-		karstPaths := util.GetKarstPaths()
+		karstPaths := utils.GetKarstPaths()
 
 		// Create directory and default config
-		if util.IsDirOrFileExist(karstPaths.KarstPath) && util.IsDirOrFileExist(karstPaths.ConfigFilePath) {
+		if utils.IsDirOrFileExist(karstPaths.KarstPath) && utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
 			logger.Info("Karst has been installed in this directory: %s", karstPaths.KarstPath)
 		} else {
+			diskUsage, err := utils.NewDiskUsage(karstPaths.InitPath)
+			if err != nil {
+				logger.Error("Fatal error in check init directory '%s': %s", karstPaths.InitPath, err)
+				os.Exit(-1)
+			}
+
+			if diskUsage.Free <= utils.InitPathMinimalCapacity {
+				logger.Error("Minimum hard disk space %dG is required, the '%s' only has %dG !", utils.InitPathMinimalCapacity/utils.GB, karstPaths.InitPath, diskUsage.Free/utils.GB)
+				os.Exit(-1)
+			}
+
 			if err := os.MkdirAll(karstPaths.KarstPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst directory: %s", err)
 				os.Exit(-1)

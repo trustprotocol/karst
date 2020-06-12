@@ -2,7 +2,7 @@ package config
 
 import (
 	"karst/logger"
-	"karst/util"
+	"karst/utils"
 	"os"
 	"sync"
 
@@ -22,7 +22,7 @@ type FastdfsConfiguration struct {
 }
 
 type Configuration struct {
-	KarstPaths   *util.KarstPaths
+	KarstPaths   *utils.KarstPaths
 	BaseUrl      string
 	FilePartSize uint64
 	TeeBaseUrl   string
@@ -37,10 +37,10 @@ var once sync.Once
 func GetInstance() *Configuration {
 	once.Do(func() {
 		// Get base karst paths
-		karstPaths := util.GetKarstPaths()
+		karstPaths := utils.GetKarstPaths()
 
 		// Check directory
-		if !util.IsDirOrFileExist(karstPaths.KarstPath) || !util.IsDirOrFileExist(karstPaths.ConfigFilePath) {
+		if !utils.IsDirOrFileExist(karstPaths.KarstPath) || !utils.IsDirOrFileExist(karstPaths.ConfigFilePath) {
 			logger.Warn("Karst execution space '%s' is not initialized, please run 'karst init' to initialize karst.", karstPaths.KarstPath)
 			os.Exit(-1)
 		}
