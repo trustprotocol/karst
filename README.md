@@ -215,6 +215,22 @@ Failed return example (not found):
 }
 ```
 
+## Build docker image
+
+### Compiler Environment
+  - ubuntu 16.04
+  - go version >= go1.13.4
+
+### Build
+```shell
+  go build
+```
+
+### Build image
+```shell
+  sudo docker build -t karst:test .
+```
+
 ## Contribution
 
 Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!
