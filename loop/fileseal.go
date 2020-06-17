@@ -98,6 +98,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs fs.FsInterface, 
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
 			fileInfo.ClearFile()
+			// TODO: Notification TEE can detect
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 
 		default:

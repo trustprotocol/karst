@@ -21,16 +21,17 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	// Check file seal message
 	fileSealReturnMsg := model.FileSealReturnMessage{
 		Status: 200,
 	}
+	defer model.SendTextMessage(c, fileSealReturnMsg)
+
+	// Check file seal message
 	mt, message, err := c.ReadMessage()
 	if err != nil {
 		logger.Error("Read err: %s", err)
 		fileSealReturnMsg.Info = err.Error()
 		fileSealReturnMsg.Status = 500
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 
@@ -38,7 +39,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 
@@ -47,7 +47,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Create file seal message, error is %s", err)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 500
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 
@@ -59,14 +58,12 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Error from chain api, order id is '%s', error is %s", fileSealMsg.StoreOrderHash, err)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 	if sOrder.FileIdentifier != "0x"+fileSealMsg.MerkleTree.Hash || sOrder.Provider != cfg.Crust.Address {
 		fileSealReturnMsg.Info = fmt.Sprintf("Invalid order id: %s", fileSealMsg.StoreOrderHash)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 	logger.Debug("Storage order '%s' check success!", fileSealMsg.StoreOrderHash)
@@ -76,7 +73,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("The merkle tree of this file '%s' is illegal", fileSealMsg.MerkleTree.Hash)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 	logger.Debug("The merkle tree of this file '%s' is legal", fileSealMsg.MerkleTree.Hash)
@@ -86,7 +82,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = "The seal queue is full or the seal loop doesn't start."
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 500
-		fileSealReturnMsg.SendBack(c)
 		return
 	}
 
@@ -96,5 +91,44 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealMsg.MerkleTree.Hash,
 		fileSealMsg.StoreOrderHash)
 	logger.Info(fileSealReturnMsg.Info)
-	fileSealReturnMsg.SendBack(c)
+}
+
+// URL: /file/unseal
+func fileUnseal(w http.ResponseWriter, r *http.Request) {
+	// Upgrade http to ws
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Error("Upgrade: %s", err)
+		return
+	}
+	defer c.Close()
+
+	fileUnsealReturnMsg := model.FileUnsealReturnMessage{
+		Status: 200,
+	}
+	defer model.SendTextMessage(c, fileUnsealReturnMsg)
+
+	// Check file seal message
+	mt, message, err := c.ReadMessage()
+	if err != nil {
+		logger.Error("Read err: %s", err)
+		fileUnsealReturnMsg.Info = err.Error()
+		fileUnsealReturnMsg.Status = 500
+		return
+	}
+
+	if mt != websocket.TextMessage {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 400
+		return
+	}
+
+	_, err = model.NewFileUnsealMessage(message)
+	if err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Create file unseal message, error is %s", err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		return
+	}
 }

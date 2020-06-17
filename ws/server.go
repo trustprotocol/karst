@@ -26,6 +26,7 @@ func StartServer(inConfig *config.Configuration, inFs fs.FsInterface, inDb *leve
 	db = inDb
 	http.HandleFunc("/api/v0/node/data", nodeData)
 	http.HandleFunc("/api/v0/file/seal", fileSeal)
+	http.HandleFunc("/api/v0/file/unseal", fileUnseal)
 
 	if err := http.ListenAndServe(cfg.BaseUrl, nil); err != nil {
 		return err
