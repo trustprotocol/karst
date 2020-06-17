@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type obtainReturnMsg struct {
+type obtainReturnMessage struct {
 	Info       string                     `json:"info"`
 	MerkleTree *merkletree.MerkleTreeNode `json:"merkle_tree"`
 	Status     int                        `json:"status"`
@@ -50,7 +50,7 @@ var obtainWsCmd = &wsCmd{
 		if fileHash == "" {
 			errString := "The field 'file_hash' is needed"
 			logger.Error(errString)
-			return obtainReturnMsg{
+			return obtainReturnMessage{
 				Info:   errString,
 				Status: 400,
 			}
@@ -59,7 +59,7 @@ var obtainWsCmd = &wsCmd{
 		if provider == "" {
 			errString := "The field 'provider' is needed"
 			logger.Error(errString)
-			return obtainReturnMsg{
+			return obtainReturnMessage{
 				Info:   errString,
 				Status: 400,
 			}
@@ -77,11 +77,11 @@ var obtainWsCmd = &wsCmd{
 	},
 }
 
-func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMsg {
+func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
 	// Get provider unseal address
 	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
 	if err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
 			Status: 400,
 		}
@@ -94,7 +94,7 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 	logger.Info("Connecting to %s to unseal file and get information", karstFileUnsealAddr)
 	c, _, err := websocket.DefaultDialer.Dial(karstFileUnsealAddr, nil)
 	if err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
 		}
@@ -108,7 +108,7 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 
 	fileUnsealMsgBytes, err := json.Marshal(fileUnsealMessage)
 	if err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
 		}
@@ -116,7 +116,7 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 
 	logger.Debug("File unseal message is: %s", string(fileUnsealMsgBytes))
 	if err = c.WriteMessage(websocket.TextMessage, fileUnsealMsgBytes); err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
 		}
@@ -124,7 +124,7 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 
 	_, message, err := c.ReadMessage()
 	if err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   err.Error(),
 			Status: 500,
 		}
@@ -134,13 +134,13 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 
 	fileUnsealReturnMessage := model.FileUnsealReturnMessage{}
 	if err = json.Unmarshal(message, &fileUnsealReturnMessage); err != nil {
-		return obtainReturnMsg{
+		return obtainReturnMessage{
 			Info:   fmt.Sprintf("Unmarshal json: %s", err),
 			Status: 500,
 		}
 	}
 
-	return obtainReturnMsg{
+	return obtainReturnMessage{
 		Info:       fileUnsealReturnMessage.Info,
 		Status:     fileUnsealReturnMessage.Status,
 		MerkleTree: fileUnsealReturnMessage.MerkleTree,

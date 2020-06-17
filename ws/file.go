@@ -124,11 +124,21 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = model.NewFileUnsealMessage(message)
+	fileUnsealMsg, err := model.NewFileUnsealMessage(message)
 	if err != nil {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Create file unseal message, error is %s", err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		return
 	}
+
+	// Check if the file has been stored locally
+	if ok, _ := db.Has([]byte(model.FileFlagInDb+fileUnsealMsg.FileHash), nil); !ok {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in karst db", fileUnsealMsg.FileHash)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 404
+		return
+	}
+
+	//
 }

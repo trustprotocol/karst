@@ -86,7 +86,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Get node of file
-		if fsm == nil {
+		if fs == nil {
 			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))
 			if err != nil {
 				logger.Error("Write err: %s", err)
@@ -126,7 +126,7 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fileBytes, err := fsm.GetToBuffer(nodeInfo.StoredKey, nodeInfo.Size)
+		fileBytes, err := fs.GetToBuffer(nodeInfo.StoredKey, nodeInfo.Size)
 		if err != nil {
 			logger.Error("Read file '%s' failed: %s", nodeInfo.Hash, err)
 			err = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 404 }"))

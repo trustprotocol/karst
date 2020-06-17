@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type registerReturnMsg struct {
+type registerReturnMesssage struct {
 	Info   string `json:"info"`
 	Status int    `json:"status"`
 }
@@ -45,7 +45,7 @@ var registerWsCmd = &wsCmd{
 		if karstAddr == "" {
 			errString := "The field 'karst_address' is needed"
 			logger.Error(errString)
-			return registerReturnMsg{
+			return registerReturnMesssage{
 				Info:   errString,
 				Status: 400,
 			}
@@ -63,15 +63,15 @@ var registerWsCmd = &wsCmd{
 	},
 }
 
-func RegisterToChain(karstAddr string, cfg *config.Configuration) registerReturnMsg {
+func RegisterToChain(karstAddr string, cfg *config.Configuration) registerReturnMesssage {
 	if err := chain.Register(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, karstAddr); err != nil {
-		return registerReturnMsg{
+		return registerReturnMesssage{
 			Info:   fmt.Sprintf("Register failed, please make sure:\n1. Your `backup`, `password` is correct\n2. You have report works, err is: %s", err.Error()),
 			Status: 400,
 		}
 	}
 
-	return registerReturnMsg{
+	return registerReturnMesssage{
 		Status: 200,
 	}
 }

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"karst/config"
-	"karst/fs"
+	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
 	"karst/tee"
@@ -40,6 +40,7 @@ var daemonCmd = &cobra.Command{
 			splitWsCmd,
 			declareWsCmd,
 			listWsCmd,
+			obtainWsCmd,
 		}
 
 		for _, wsCmd := range wsCommands {
@@ -50,7 +51,7 @@ var daemonCmd = &cobra.Command{
 		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
 			// FS
 			// TODO: Support mulitable file system
-			fs, err := fs.OpenFastdfs(cfg)
+			fs, err := filesystem.OpenFastdfs(cfg)
 			if err != nil {
 				logger.Error("Fatal error in opening fastdfs: %s", err)
 				os.Exit(-1)
