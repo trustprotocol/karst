@@ -23,7 +23,7 @@ func init() {
 var registerWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "register [karst_address]",
-		Short: "Register to chain as provider",
+		Short: "(provider) Register to chain as provider",
 		Long:  "Check your qualification, register karst address to chain.",
 		Args:  cobra.MinimumNArgs(1),
 	},

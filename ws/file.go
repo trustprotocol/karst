@@ -3,10 +3,14 @@ package ws
 import (
 	"fmt"
 	"karst/chain"
+	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
 	"karst/model"
+	"karst/utils"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gorilla/websocket"
 )
@@ -24,7 +28,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 	fileSealReturnMsg := model.FileSealReturnMessage{
 		Status: 200,
 	}
-	defer model.SendTextMessage(c, fileSealReturnMsg)
 
 	// Check file seal message
 	mt, message, err := c.ReadMessage()
@@ -32,6 +35,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Read err: %s", err)
 		fileSealReturnMsg.Info = err.Error()
 		fileSealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 
@@ -39,6 +43,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 
@@ -47,6 +52,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Create file seal message, error is %s", err)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 
@@ -58,12 +64,14 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("Error from chain api, order id is '%s', error is %s", fileSealMsg.StoreOrderHash, err)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 	if sOrder.FileIdentifier != "0x"+fileSealMsg.MerkleTree.Hash || sOrder.Provider != cfg.Crust.Address {
 		fileSealReturnMsg.Info = fmt.Sprintf("Invalid order id: %s", fileSealMsg.StoreOrderHash)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 	logger.Debug("Storage order '%s' check success!", fileSealMsg.StoreOrderHash)
@@ -73,6 +81,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = fmt.Sprintf("The merkle tree of this file '%s' is illegal", fileSealMsg.MerkleTree.Hash)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 	logger.Debug("The merkle tree of this file '%s' is legal", fileSealMsg.MerkleTree.Hash)
@@ -82,6 +91,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealReturnMsg.Info = "The seal queue is full or the seal loop doesn't start."
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
 
@@ -91,6 +101,8 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		fileSealMsg.MerkleTree.Hash,
 		fileSealMsg.StoreOrderHash)
 	logger.Info(fileSealReturnMsg.Info)
+
+	model.SendTextMessage(c, fileSealReturnMsg)
 }
 
 // URL: /file/unseal
@@ -106,7 +118,6 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	fileUnsealReturnMsg := model.FileUnsealReturnMessage{
 		Status: 200,
 	}
-	defer model.SendTextMessage(c, fileUnsealReturnMsg)
 
 	// Check file seal message
 	mt, message, err := c.ReadMessage()
@@ -114,6 +125,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Read err: %s", err)
 		fileUnsealReturnMsg.Info = err.Error()
 		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
 
@@ -121,6 +133,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
 
@@ -129,6 +142,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Create file unseal message, error is %s", err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
 
@@ -137,8 +151,76 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in karst db", fileUnsealMsg.FileHash)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 404
+		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
 
-	//
+	// TODO: Duplicate file processing
+	fileInfo, err := model.GetFileInfoFromDb(fileUnsealMsg.FileHash, db, model.FileFlagInDb)
+	if err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Read this file '%s' from karst failed: %s", fileUnsealMsg.FileHash, err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+
+	// Create file directory
+	fileStorePath := filepath.FromSlash(cfg.KarstPaths.UnsealFilesPath + "/" + utils.RandString(10) + "/" + fileInfo.MerkleTreeSealed.Hash)
+	if utils.IsDirOrFileExist(fileStorePath) {
+		fileUnsealReturnMsg.Info = "Create duplicated random string"
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+
+	if err := os.MkdirAll(fileStorePath, os.ModePerm); err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in creating file store directory: %s", err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+
+	// Get file from fs
+	fileInfoForUnseal, err := filesystem.GetSealedFileFromFs(fileStorePath, fs, fileInfo.MerkleTreeSealed)
+	fileInfoForUnseal.MerkleTree = fileInfo.MerkleTree
+	if err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from fs: %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		fileInfoForUnseal.ClearFile()
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+
+	// TODO: Caching mechanism
+	// Unseal file
+	_, newFileStorePath, err := te.Unseal(fileInfoForUnseal.StoredPath)
+	if err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in unsealing file '%s' : %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		fileInfoForUnseal.ClearFile()
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+	fileInfoForUnseal.StoredPath = newFileStorePath
+
+	// Save file into fs
+	err = filesystem.PutOriginalFileIntoFs(fileInfoForUnseal, fs)
+	if err != nil {
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into fs: %s", fileInfoForUnseal.MerkleTree.Hash, err)
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		fileInfoForUnseal.ClearFile()
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+
+	fileInfoForUnseal.SaveToDb(db)
+
+	fileUnsealReturnMsg.MerkleTree = fileInfoForUnseal.MerkleTree
+	model.SendTextMessage(c, fileUnsealReturnMsg)
 }

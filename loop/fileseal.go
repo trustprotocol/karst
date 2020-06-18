@@ -54,9 +54,9 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			}
 
 			// Create file directory
-			fileStorePath := filepath.FromSlash(cfg.KarstPaths.TempFilesPath + "/" + job.MerkleTree.Hash)
+			fileStorePath := filepath.FromSlash(cfg.KarstPaths.SealFilesPath + "/" + job.MerkleTree.Hash)
 			if utils.IsDirOrFileExist(fileStorePath) {
-				logger.Info("The file '%s' is being processed", job.MerkleTree.Hash)
+				logger.Info("The file '%s' is being sealed", job.MerkleTree.Hash)
 				continue
 			}
 

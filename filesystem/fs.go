@@ -75,3 +75,18 @@ func PutSealedFileIntoFs(fileInfo *model.FileInfo, fs FsInterface) error {
 	}
 	return nil
 }
+
+func PutOriginalFileIntoFs(fileInfo *model.FileInfo, fs FsInterface) error {
+	if fileInfo.MerkleTree == nil {
+		return fmt.Errorf("MerkleTreeSealed of fileInfo is nil")
+	}
+
+	for i := range fileInfo.MerkleTree.Links {
+		key, err := fs.Put(filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatInt(int64(i), 10) + "_" + fileInfo.MerkleTreeSealed.Links[i].Hash))
+		if err != nil {
+			return err
+		}
+		fileInfo.MerkleTree.Links[i].StoredKey = key
+	}
+	return nil
+}
