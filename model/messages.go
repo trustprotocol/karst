@@ -54,6 +54,28 @@ type FileUnsealReturnMessage struct {
 	Info       string                     `json:"info"`
 }
 
+// ----------------------------FileFinishMessage------------------------------
+type FileFinishMessage struct {
+	Client     string                     `json:"client"`
+	MerkleTree *merkletree.MerkleTreeNode `json:"merkle_tree"`
+}
+
+func NewFileFinishMessage(msg []byte) (*FileFinishMessage, error) {
+	var ffm FileFinishMessage
+	err := json.Unmarshal(msg, &ffm)
+	if err != nil {
+		logger.Error("Unmarshal failed: %s", err)
+		return nil, err
+	}
+	return &ffm, err
+}
+
+// --------------------------FileFinishReturnMessage--------------------------
+type FileFinishReturnMessage struct {
+	Status int    `json:"status"`
+	Info   string `json:"info"`
+}
+
 // ------------------------------BackupMessage------------------------------
 type BackupMessage struct {
 	Backup string `json:"backup"`

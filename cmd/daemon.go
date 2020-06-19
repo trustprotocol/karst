@@ -39,6 +39,7 @@ var daemonCmd = &cobra.Command{
 			splitWsCmd,
 			declareWsCmd,
 			obtainWsCmd,
+			finishWsCmd,
 		}
 
 		var providerWsCommands = []*wsCmd{
