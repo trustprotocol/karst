@@ -6,7 +6,6 @@ import (
 	"karst/chain"
 	"karst/config"
 	"karst/logger"
-	"karst/merkletree"
 	"karst/model"
 	"time"
 
@@ -15,9 +14,9 @@ import (
 )
 
 type obtainReturnMessage struct {
-	Info       string                     `json:"info"`
-	MerkleTree *merkletree.MerkleTreeNode `json:"merkle_tree"`
-	Status     int                        `json:"status"`
+	Info       string `json:"info"`
+	MerkleTree string `json:"merkle_tree"`
+	Status     int    `json:"status"`
 }
 
 func init() {
@@ -66,7 +65,7 @@ var obtainWsCmd = &wsCmd{
 		}
 
 		// Register karst address
-		obtainReturnMsg := RequestProviderUnseal(fileHash, provider, wsc.Cfg)
+		obtainReturnMsg := requestProviderUnseal(fileHash, provider, wsc.Cfg)
 		if obtainReturnMsg.Status != 200 {
 			logger.Error("Request provider '%s' to unseal '%s' failed, error is: %s", fileHash, provider, obtainReturnMsg.Info)
 			return obtainReturnMsg
@@ -77,7 +76,7 @@ var obtainWsCmd = &wsCmd{
 	},
 }
 
-func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
+func requestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
 	// Get provider unseal address
 	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
 	if err != nil {
@@ -140,9 +139,10 @@ func RequestProviderUnseal(fileHash string, provider string, cfg *config.Configu
 		}
 	}
 
+	merkleTreeBytes, _ := json.Marshal(fileUnsealReturnMessage.MerkleTree)
 	return obtainReturnMessage{
 		Info:       fileUnsealReturnMessage.Info,
 		Status:     fileUnsealReturnMessage.Status,
-		MerkleTree: fileUnsealReturnMessage.MerkleTree,
+		MerkleTree: string(merkleTreeBytes),
 	}
 }

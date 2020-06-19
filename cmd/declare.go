@@ -28,7 +28,7 @@ func init() {
 var declareWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "declare [merkle_tree] [provider]",
-		Short: "Declare file to chain",
+		Short: "Declare file to chain and request provider to generate store proof",
 		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part and the 'provider' is chain address",
 		Args:  cobra.MinimumNArgs(2),
 	},

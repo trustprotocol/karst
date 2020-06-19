@@ -93,7 +93,7 @@ karst obtain e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef 5F
 
 **ps: register needs call chain's rpc, so you may wait for couple seconds waiting for chain's confirm**
 
-### Declare /api/v0/cmd/list
+### List /api/v0/cmd/list
 #### Input(list all files)
 ```json
 {
@@ -146,23 +146,7 @@ karst obtain e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef 5F
 ```json
 {
 	"info":"Split '/home/crust/test/karst/1M.bin' successfully in 6.962893ms ! It root hash is 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef'.",
-	"merkle_tree":
-  {
-    "hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef",
-    "size":1048567,
-    "links_num":1,
-    "links":
-    [
-      {
-        "hash":"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970",
-        "size":1048567,
-        "links_num":0,
-        "links":[],
-        "stored_key":""
-      }
-    ],
-    "stored_key":""
-  },
+	"merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}",
 	"status":200
 }
 ```
@@ -200,23 +184,7 @@ karst obtain e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef 5F
 ```json
 {
   "info":"Obtain 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' from '5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA' successfully in 33.938813ms !",
-  "merkle_tree":
-  {
-    "hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef",
-    "size":1048567,
-    "links_num":1,
-    "links":
-    [
-      {
-        "hash":"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970",
-        "size":1048567,
-        "links_num":0,
-        "links":[],
-        "stored_key":"group1/M00/00/00/wKgyC17sK5aAI1QLAA__9-56uVA1480792"
-      }
-    ],
-    "stored_key":""
-  },
+  "merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}",
   "status":200
 }
 ```
