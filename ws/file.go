@@ -118,7 +118,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		Status: 200,
 	}
 
-	// Check file seal message
+	// Check file unseal message
 	mt, message, err := c.ReadMessage()
 	if err != nil {
 		logger.Error("Read err: %s", err)
@@ -265,6 +265,25 @@ func fileFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check file exist
+	if ok, _ := db.Has([]byte(model.FileFlagInDb+fileFinishMsg.MerkleTree.Hash), nil); !ok {
+		fileFinishReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in provider db", fileFinishMsg.MerkleTree.Hash)
+		logger.Error(fileFinishReturnMsg.Info)
+		fileFinishReturnMsg.Status = 404
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+
+	// Check if merkle is legal
+	if !fileFinishMsg.MerkleTree.IsLegal() {
+		fileFinishReturnMsg.Info = fmt.Sprintf("The merkle tree of this file '%s' is illegal", fileFinishMsg.MerkleTree.Hash)
+		logger.Error(fileFinishReturnMsg.Info)
+		fileFinishReturnMsg.Status = 400
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+
+	// Delete file from fs
 	err = filesystem.DeleteFileFromFs(fileFinishMsg.MerkleTree, fs)
 	if err != nil {
 		fileFinishReturnMsg.Info = fmt.Sprintf("Delete original file '%s', error is %s", fileFinishMsg.MerkleTree.Hash, err)
