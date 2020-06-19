@@ -20,7 +20,7 @@ func init() {
 var daemonCmd = &cobra.Command{
 	Use:   "daemon",
 	Short: "Start karst service",
-	Long:  "Start karst service, it will use '$HOME/.karst' to run krast by default, set KARST_PATH to change execution space",
+	Long:  "Start karst service, it will use '$HOME/.karst' to run karst by default, set KARST_PATH to change execution space",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Configuation
 		cfg := config.GetInstance()
