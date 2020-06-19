@@ -82,7 +82,7 @@ func PutOriginalFileIntoFs(fileInfo *model.FileInfo, fs FsInterface) error {
 	}
 
 	for i := range fileInfo.MerkleTree.Links {
-		key, err := fs.Put(filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatInt(int64(i), 10) + "_" + fileInfo.MerkleTreeSealed.Links[i].Hash))
+		key, err := fs.Put(filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatInt(int64(i), 10) + "_" + fileInfo.MerkleTree.Links[i].Hash))
 		if err != nil {
 			return err
 		}

@@ -72,19 +72,27 @@ var daemonCmd = &cobra.Command{
 				wsCmd.Register(db, cfg)
 			}
 
+			// Register base cmd apis
+			for _, wsCmd := range baseWsCommands {
+				wsCmd.Register(db, cfg)
+			}
+
 			logger.Info("--------- Provider model ------------")
+			if err := ws.StartServer(cfg, fs, db, tee); err != nil {
+				logger.Error("%s", err)
+			}
 		} else {
+			// Register base cmd apis
+			for _, wsCmd := range baseWsCommands {
+				wsCmd.Register(db, cfg)
+			}
+
 			logger.Info("---------- Client model -------------")
-		}
+			// Start websocket service
+			if err := ws.StartServer(cfg, nil, db, nil); err != nil {
+				logger.Error("%s", err)
+			}
 
-		// Register base cmd apis
-		for _, wsCmd := range baseWsCommands {
-			wsCmd.Register(db, cfg)
-		}
-
-		// Start websocket service
-		if err := ws.StartServer(cfg, nil, db, nil); err != nil {
-			logger.Error("%s", err)
 		}
 	},
 }

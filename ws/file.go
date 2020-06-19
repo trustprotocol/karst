@@ -166,7 +166,10 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create file directory
-	fileStorePath := filepath.FromSlash(cfg.KarstPaths.UnsealFilesPath + "/" + utils.RandString(10) + "/" + fileInfo.MerkleTreeSealed.Hash)
+	fileStoreBasePath := filepath.FromSlash(cfg.KarstPaths.UnsealFilesPath + "/" + utils.RandString(10))
+	defer os.RemoveAll(fileStoreBasePath)
+
+	fileStorePath := filepath.FromSlash(fileStoreBasePath + "/" + fileInfo.MerkleTreeSealed.Hash)
 	if utils.IsDirOrFileExist(fileStorePath) {
 		fileUnsealReturnMsg.Info = "Create duplicated random string"
 		logger.Error(fileUnsealReturnMsg.Info)
@@ -190,7 +193,6 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from fs: %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
-		fileInfoForUnseal.ClearFile()
 		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
@@ -202,7 +204,6 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in unsealing file '%s' : %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
-		fileInfoForUnseal.ClearFile()
 		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
@@ -214,12 +215,9 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into fs: %s", fileInfoForUnseal.MerkleTree.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
-		fileInfoForUnseal.ClearFile()
 		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
-
-	fileInfoForUnseal.SaveToDb(db)
 
 	fileUnsealReturnMsg.MerkleTree = fileInfoForUnseal.MerkleTree
 	model.SendTextMessage(c, fileUnsealReturnMsg)
