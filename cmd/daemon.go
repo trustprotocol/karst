@@ -73,9 +73,6 @@ var daemonCmd = &cobra.Command{
 			}
 
 			logger.Info("--------- Provider model ------------")
-			if err := ws.StartServer(cfg, fs, db, tee); err != nil {
-				logger.Error("%s", err)
-			}
 		} else {
 			logger.Info("---------- Client model -------------")
 		}
