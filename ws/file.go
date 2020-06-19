@@ -38,6 +38,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
+	logger.Debug("Recv file seal message: %s, message type is %d", message, mt)
 
 	if mt != websocket.TextMessage {
 		fileSealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
@@ -55,8 +56,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
-
-	logger.Debug("Recv file seal message: %s, message type is %d", message, mt)
 
 	// Storage order check
 	sOrder, err := chain.GetStorageOrder(cfg.Crust.BaseUrl, fileSealMsg.StoreOrderHash)
@@ -128,6 +127,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
+	logger.Debug("Recv file unseal message: %s, message type is %d", message, mt)
 
 	if mt != websocket.TextMessage {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
@@ -148,7 +148,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// Check if the file has been stored locally
 	if ok, _ := db.Has([]byte(model.FileFlagInDb+fileUnsealMsg.FileHash), nil); !ok {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in karst db", fileUnsealMsg.FileHash)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in provider db", fileUnsealMsg.FileHash)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 404
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -158,7 +158,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	// TODO: Duplicate file processing
 	fileInfo, err := model.GetFileInfoFromDb(fileUnsealMsg.FileHash, db, model.FileFlagInDb)
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Read this file '%s' from karst failed: %s", fileUnsealMsg.FileHash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Read this file '%s' from provider db failed: %s", fileUnsealMsg.FileHash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -190,7 +190,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	fileInfoForUnseal, err := filesystem.GetSealedFileFromFs(fileStorePath, fs, fileInfo.MerkleTreeSealed)
 	fileInfoForUnseal.MerkleTree = fileInfo.MerkleTree
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from fs: %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from provider fs: %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -212,7 +212,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	// Save file into fs
 	err = filesystem.PutOriginalFileIntoFs(fileInfoForUnseal, fs)
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into fs: %s", fileInfoForUnseal.MerkleTree.Hash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into provider fs: %s", fileInfoForUnseal.MerkleTree.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -221,4 +221,58 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	fileUnsealReturnMsg.MerkleTree = fileInfoForUnseal.MerkleTree
 	model.SendTextMessage(c, fileUnsealReturnMsg)
+}
+
+// URL: /file/finish
+func fileFinish(w http.ResponseWriter, r *http.Request) {
+	// Upgrade http to ws
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Error("Upgrade: %s", err)
+		return
+	}
+	defer c.Close()
+
+	fileFinishReturnMsg := model.FileFinishReturnMessage{
+		Status: 200,
+	}
+
+	// Check file seal message
+	mt, message, err := c.ReadMessage()
+	if err != nil {
+		logger.Error("Read err: %s", err)
+		fileFinishReturnMsg.Info = err.Error()
+		fileFinishReturnMsg.Status = 500
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+	logger.Debug("Recv file finish message: %s, message type is %d", message, mt)
+
+	if mt != websocket.TextMessage {
+		fileFinishReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
+		logger.Error(fileFinishReturnMsg.Info)
+		fileFinishReturnMsg.Status = 400
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+
+	fileFinishMsg, err := model.NewFileFinishMessage(message)
+	if err != nil {
+		fileFinishReturnMsg.Info = fmt.Sprintf("Create file finish message, error is %s", err)
+		logger.Error(fileFinishReturnMsg.Info)
+		fileFinishReturnMsg.Status = 500
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+
+	err = filesystem.DeleteFileFromFs(fileFinishMsg.MerkleTree, fs)
+	if err != nil {
+		fileFinishReturnMsg.Info = fmt.Sprintf("Delete original file '%s', error is %s", fileFinishMsg.MerkleTree.Hash, err)
+		logger.Error(fileFinishReturnMsg.Info)
+		fileFinishReturnMsg.Status = 500
+		model.SendTextMessage(c, fileFinishReturnMsg)
+		return
+	}
+
+	model.SendTextMessage(c, fileFinishReturnMsg)
 }

@@ -125,13 +125,13 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 	}
 	defer c.Close()
 
-	fileSealMessage := model.FileSealMessage{
+	fileSealMsg := model.FileSealMessage{
 		Client:         cfg.Crust.Address,
 		StoreOrderHash: storeOrderHash,
 		MerkleTree:     &mt,
 	}
 
-	fileSealMsgBytes, err := json.Marshal(fileSealMessage)
+	fileSealMsgBytes, err := json.Marshal(fileSealMsg)
 	if err != nil {
 		return declareReturnMsg{
 			Info:   err.Error(),
@@ -157,8 +157,8 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 
 	logger.Debug("File seal return: %s", message)
 
-	fileSealReturnMessage := model.FileSealReturnMessage{}
-	if err = json.Unmarshal(message, &fileSealReturnMessage); err != nil {
+	fileSealReturnMsg := model.FileSealReturnMessage{}
+	if err = json.Unmarshal(message, &fileSealReturnMsg); err != nil {
 		return declareReturnMsg{
 			Info:   fmt.Sprintf("Unmarshal json: %s", err),
 			Status: 500,
@@ -166,8 +166,8 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 	}
 
 	return declareReturnMsg{
-		Info:           fileSealReturnMessage.Info,
-		Status:         fileSealReturnMessage.Status,
+		Info:           fileSealReturnMsg.Info,
+		Status:         fileSealReturnMsg.Status,
 		StoreOrderHash: storeOrderHash,
 	}
 }

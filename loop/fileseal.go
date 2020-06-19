@@ -97,7 +97,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 
 			// TODO: Use cache to speed up get method
 			// Delete original file from fs
-			if err = filesystem.DeleteOriginalFileFromFs(fileInfo, fs); err != nil {
+			if err = filesystem.DeleteFileFromFs(fileInfo.MerkleTree, fs); err != nil {
 				logger.Error("Delete original whole file failed, error is %s", err)
 				fileInfo.ClearFile()
 				continue

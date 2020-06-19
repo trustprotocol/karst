@@ -47,13 +47,13 @@ func GetSealedFileFromFs(fileStorePath string, fs FsInterface, mt *merkletree.Me
 	return fileInfo, nil
 }
 
-func DeleteOriginalFileFromFs(fileInfo *model.FileInfo, fs FsInterface) error {
-	if fileInfo.MerkleTree == nil {
-		return fmt.Errorf("MerkleTree of fileInfo is nil")
+func DeleteFileFromFs(mt *merkletree.MerkleTreeNode, fs FsInterface) error {
+	if mt == nil {
+		return fmt.Errorf("MerkleTree is nil")
 	}
 
-	for i := range fileInfo.MerkleTree.Links {
-		err := fs.Delete(fileInfo.MerkleTree.Links[i].StoredKey)
+	for i := range mt.Links {
+		err := fs.Delete(mt.Links[i].StoredKey)
 		if err != nil {
 			return err
 		}

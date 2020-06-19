@@ -3,11 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
+	"karst/model"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
 
@@ -52,8 +55,8 @@ var finishWsCmd = &wsCmd{
 			}
 		}
 
-		var mt *merkletree.MerkleTreeNode
-		err := json.Unmarshal([]byte(merkleTree), mt)
+		var mt merkletree.MerkleTreeNode
+		err := json.Unmarshal([]byte(merkleTree), &mt)
 		if err != nil || !mt.IsLegal() {
 			errString := fmt.Sprintf("The field 'merkle_tree' is illegal, err is: %s", err)
 			logger.Error(errString)
@@ -74,7 +77,7 @@ var finishWsCmd = &wsCmd{
 		}
 
 		// Notify provider to finish this file
-		finishReturnMsg := notifyProviderFinish(mt, provider, wsc.Cfg)
+		finishReturnMsg := notifyProviderFinish(&mt, provider, wsc.Cfg)
 		if finishReturnMsg.Status != 200 {
 			logger.Error("Request provider '%s' to finish '%s' failed, error is: %s", mt.Hash, provider, finishReturnMsg.Info)
 			return finishReturnMsg
@@ -86,7 +89,70 @@ var finishWsCmd = &wsCmd{
 }
 
 func notifyProviderFinish(mt *merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) finishReturnMessage {
+	// Get provider unseal address
+	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	if err != nil {
+		return finishReturnMessage{
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Status: 400,
+		}
+	}
+
+	karstFileFinishAddr := karstBaseAddr + "/api/v0/file/finish"
+	logger.Debug("Get file finish address '%s' of '%s' success.", karstFileFinishAddr, provider)
+
+	// Request provider to seal file and give store proof
+	logger.Info("Connecting to %s to finish file", karstFileFinishAddr)
+	c, _, err := websocket.DefaultDialer.Dial(karstFileFinishAddr, nil)
+	if err != nil {
+		return finishReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+	defer c.Close()
+
+	fileFinishMsg := model.FileFinishMessage{
+		Client:     cfg.Crust.Address,
+		MerkleTree: mt,
+	}
+
+	fileFinishMsgBytes, err := json.Marshal(fileFinishMsg)
+	if err != nil {
+		return finishReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
+	logger.Debug("File finish message is: %s", string(fileFinishMsgBytes))
+
+	if err = c.WriteMessage(websocket.TextMessage, fileFinishMsgBytes); err != nil {
+		return finishReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
+	_, message, err := c.ReadMessage()
+	if err != nil {
+		return finishReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+	logger.Debug("File finish return: %s", message)
+
+	fileFinishReturnMsg := model.FileFinishReturnMessage{}
+	if err = json.Unmarshal(message, &fileFinishReturnMsg); err != nil {
+		return finishReturnMessage{
+			Info:   err.Error(),
+			Status: 500,
+		}
+	}
+
 	return finishReturnMessage{
-		Status: 200,
+		Info:   fileFinishReturnMsg.Info,
+		Status: fileFinishReturnMsg.Status,
 	}
 }
