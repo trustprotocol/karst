@@ -1,8 +1,8 @@
-package fs
+package filesystem
 
 import (
 	"karst/config"
-	"karst/fs/fastdfs"
+	"karst/filesystem/fastdfs"
 )
 
 type Fastdfs struct {

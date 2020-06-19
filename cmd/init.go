@@ -41,13 +41,13 @@ var initCmd = &cobra.Command{
 				os.Exit(-1)
 			}
 
-			if err := os.MkdirAll(karstPaths.FilesPath, os.ModePerm); err != nil {
-				logger.Error("Fatal error in creating karst files directory: %s", err)
+			if err := os.MkdirAll(karstPaths.UnsealFilesPath, os.ModePerm); err != nil {
+				logger.Error("Fatal error in creating karst unseal files directory: %s", err)
 				os.Exit(-1)
 			}
 
-			if err := os.MkdirAll(karstPaths.TempFilesPath, os.ModePerm); err != nil {
-				logger.Error("Fatal error in creating karst temp files directory: %s", err)
+			if err := os.MkdirAll(karstPaths.SealFilesPath, os.ModePerm); err != nil {
+				logger.Error("Fatal error in creating karst seal files directory: %s", err)
 				os.Exit(-1)
 			}
 

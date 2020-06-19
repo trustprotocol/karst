@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"karst/config"
-	"karst/fs"
+	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
 	"karst/tee"
@@ -20,7 +20,7 @@ func init() {
 var daemonCmd = &cobra.Command{
 	Use:   "daemon",
 	Short: "Start karst service",
-	Long:  "Start karst service, it will use '$HOME/.karst' to run krast by default, set KARST_PATH to change execution space",
+	Long:  "Start karst service, it will use '$HOME/.karst' to run karst by default, set KARST_PATH to change execution space",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Configuation
 		cfg := config.GetInstance()
@@ -34,23 +34,23 @@ var daemonCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Register cmd apis
-		var wsCommands = []*wsCmd{
-			registerWsCmd,
+		// Cmd apis
+		var baseWsCommands = []*wsCmd{
 			splitWsCmd,
 			declareWsCmd,
-			listWsCmd,
+			obtainWsCmd,
 		}
 
-		for _, wsCmd := range wsCommands {
-			wsCmd.Register(db, cfg)
+		var providerWsCommands = []*wsCmd{
+			registerWsCmd,
+			listWsCmd,
 		}
 
 		// Sever model
 		if cfg.TeeBaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
 			// FS
 			// TODO: Support mulitable file system
-			fs, err := fs.OpenFastdfs(cfg)
+			fs, err := filesystem.OpenFastdfs(cfg)
 			if err != nil {
 				logger.Error("Fatal error in opening fastdfs: %s", err)
 				os.Exit(-1)
@@ -67,16 +67,32 @@ var daemonCmd = &cobra.Command{
 			// File seal loop
 			loop.StartFileSealLoop(cfg, db, fs, tee)
 
+			// Register provider cmd apis
+			for _, wsCmd := range providerWsCommands {
+				wsCmd.Register(db, cfg)
+			}
+
+			// Register base cmd apis
+			for _, wsCmd := range baseWsCommands {
+				wsCmd.Register(db, cfg)
+			}
+
 			logger.Info("--------- Provider model ------------")
-			if err := ws.StartServer(cfg, fs, db); err != nil {
+			if err := ws.StartServer(cfg, fs, db, tee); err != nil {
 				logger.Error("%s", err)
 			}
 		} else {
+			// Register base cmd apis
+			for _, wsCmd := range baseWsCommands {
+				wsCmd.Register(db, cfg)
+			}
+
 			logger.Info("---------- Client model -------------")
 			// Start websocket service
-			if err := ws.StartServer(cfg, nil, db); err != nil {
+			if err := ws.StartServer(cfg, nil, db, nil); err != nil {
 				logger.Error("%s", err)
 			}
+
 		}
 	},
 }

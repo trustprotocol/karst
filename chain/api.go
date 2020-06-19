@@ -15,8 +15,7 @@ type RegisterRequest struct {
 }
 
 type Provider struct {
-	Address string     `json:"address"`
-	FileMap [][]string `json:"file_map"`
+	Address string `json:"address"`
 }
 
 type SOrderRequest struct {

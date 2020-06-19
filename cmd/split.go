@@ -22,9 +22,9 @@ import (
 )
 
 type splitReturnMsg struct {
-	Info       string `json:"info"`
-	MerkleTree string `json:"merkle_tree"`
-	Status     int    `json:"status"`
+	Info       string                     `json:"info"`
+	MerkleTree *merkletree.MerkleTreeNode `json:"merkle_tree"`
+	Status     int                        `json:"status"`
 }
 
 func init() {
@@ -90,7 +90,7 @@ var splitWsCmd = &wsCmd{
 		logger.Info(returnInfo)
 		return splitReturnMsg{
 			Info:       returnInfo,
-			MerkleTree: string(merkleTreeBytes),
+			MerkleTree: fileInfo.MerkleTree,
 			Status:     200,
 		}
 	},
