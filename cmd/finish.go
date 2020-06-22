@@ -90,7 +90,7 @@ var finishWsCmd = &wsCmd{
 
 func notifyProviderFinish(mt *merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) finishReturnMessage {
 	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
 	if err != nil {
 		return finishReturnMessage{
 			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),

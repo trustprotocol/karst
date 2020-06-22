@@ -64,9 +64,9 @@ var registerWsCmd = &wsCmd{
 }
 
 func RegisterToChain(karstAddr string, cfg *config.Configuration) registerReturnMesssage {
-	if err := chain.Register(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, karstAddr); err != nil {
+	if err := chain.Register(cfg, karstAddr); err != nil {
 		return registerReturnMesssage{
-			Info:   fmt.Sprintf("Register failed, please make sure:\n1. Your `backup`, `password` is correct\n2. You have report works, err is: %s", err.Error()),
+			Info:   fmt.Sprintf("Register failed, please make sure:1. Your `backup`, `password` is correct; 2. You have report works; 3. You have enough mortgage, err is: %s", err.Error()),
 			Status: 400,
 		}
 	}
