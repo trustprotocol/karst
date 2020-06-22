@@ -28,7 +28,7 @@ func init() {
 
 var declareWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "declare [merkle_tree] [provider] [duration]",
+		Use:   "declare [merkle_tree] [duration] [provider]",
 		Short: "Declare file to chain and request provider to generate store proof",
 		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part, the 'provider' is chain address and 'duration' is number of blocks lasting for file storage",
 		Args:  cobra.MinimumNArgs(3),
@@ -36,8 +36,8 @@ var declareWsCmd = &wsCmd{
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
 		reqBody := map[string]string{
 			"merkle_tree": args[0],
-			"provider":    args[1],
-			"duration":    args[2],
+			"duration":    args[1],
+			"provider":    args[2],
 		}
 
 		return reqBody, nil
