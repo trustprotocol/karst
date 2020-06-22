@@ -98,6 +98,7 @@ func (wsc *wsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 	logger.Debug("Recv: %s", message)
 
 	// Check backup
+	// TODO: support interface
 	args := make(map[string]string)
 	err = json.Unmarshal(message, &args)
 	if err != nil {
@@ -106,12 +107,12 @@ func (wsc *wsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if args["backup"] != wsc.Cfg.Crust.Backup {
-		logger.Error("Wrong backup: %s", err)
+		logger.Error("Wrong backup")
 		wsc.sendBack(c, 400)
 		return
 	}
 	if args["password"] != wsc.Cfg.Crust.Password {
-		logger.Error("Wrong password: %s", err)
+		logger.Error("Wrong password")
 		wsc.sendBack(c, 400)
 		return
 	}
