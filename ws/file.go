@@ -58,7 +58,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Storage order check
-	sOrder, err := chain.GetStorageOrder(cfg.Crust.BaseUrl, fileSealMsg.StoreOrderHash)
+	sOrder, err := chain.GetStorageOrder(cfg, fileSealMsg.StoreOrderHash)
 	if err != nil {
 		fileSealReturnMsg.Info = fmt.Sprintf("Error from chain api, order id is '%s', error is %s", fileSealMsg.StoreOrderHash, err)
 		logger.Error(fileSealReturnMsg.Info)

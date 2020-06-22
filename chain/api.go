@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"karst/config"
 	"karst/logger"
 
 	"github.com/imroc/req"
@@ -47,21 +48,20 @@ type SOrderResponse struct {
 	OrderId string `json:"orderId"`
 }
 
-// TODO: extract baseUrl, backup and pwd to common structure
-func Register(baseUrl string, backup string, pwd string, karstAddr string) error {
+func Register(cfg *config.Configuration, karstAddr string) error {
 	header := req.Header{
-		"password": pwd,
+		"password": cfg.Crust.Password,
 	}
 
 	regReq := RegisterRequest{
 		AddressInfo: karstAddr,
-		Backup:      backup,
+		Backup:      cfg.Crust.Backup,
 	}
 
 	body := req.BodyJSON(&regReq)
 	logger.Debug("Register request body: %s", body)
 
-	r, err := req.Post(baseUrl+"/api/v1/market/register", header, body)
+	r, err := req.Post(cfg.Crust.BaseUrl+"/api/v1/market/register", header, body)
 
 	if err != nil {
 		return err
@@ -76,11 +76,11 @@ func Register(baseUrl string, backup string, pwd string, karstAddr string) error
 	return nil
 }
 
-func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
+func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, error) {
 	param := req.Param{
 		"address": pChainAddr,
 	}
-	r, err := req.Get(baseUrl+"/api/v1/market/provider", param)
+	r, err := req.Get(cfg.Crust.BaseUrl+"/api/v1/market/provider", param)
 
 	if err != nil {
 		return "", err
@@ -99,9 +99,9 @@ func GetProviderAddr(baseUrl string, pChainAddr string) (string, error) {
 	return provider.Address, nil
 }
 
-func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider string, fId string, fSize uint64) (string, error) {
+func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint64, fId string, fSize uint64) (string, error) {
 	header := req.Header{
-		"password": pwd,
+		"password": cfg.Crust.Password,
 	}
 
 	sOrder := StorageOrder{
@@ -109,7 +109,7 @@ func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider strin
 		Amount:         0,
 		FileIdentifier: fId,
 		FileSize:       fSize,
-		Duration:       320,
+		Duration:       duration,
 	}
 
 	sOrderStr, err := json.Marshal(sOrder)
@@ -120,12 +120,12 @@ func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider strin
 
 	sOrderReq := SOrderRequest{
 		SOrder: string(sOrderStr),
-		Backup: backup,
+		Backup: cfg.Crust.Backup,
 	}
 
 	body := req.BodyJSON(&sOrderReq)
 
-	r, err := req.Post(baseUrl+"/api/v1/market/sorder", header, body)
+	r, err := req.Post(cfg.Crust.BaseUrl+"/api/v1/market/sorder", header, body)
 	if err != nil {
 		return "", err
 	}
@@ -142,11 +142,11 @@ func PlaceStorageOrder(baseUrl string, backup string, pwd string, provider strin
 	return sOrderRes.OrderId, nil
 }
 
-func GetStorageOrder(baseUrl string, orderId string) (FullStorageOrder, error) {
+func GetStorageOrder(cfg *config.Configuration, orderId string) (FullStorageOrder, error) {
 	param := req.Param{
 		"orderId": orderId,
 	}
-	r, err := req.Get(baseUrl+"/api/v1/market/sorder", param)
+	r, err := req.Get(cfg.Crust.BaseUrl+"/api/v1/market/sorder", param)
 	sOrder := FullStorageOrder{}
 
 	if err != nil {

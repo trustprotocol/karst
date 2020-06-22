@@ -78,7 +78,7 @@ var obtainWsCmd = &wsCmd{
 
 func requestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
 	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
 	if err != nil {
 		return obtainReturnMessage{
 			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),

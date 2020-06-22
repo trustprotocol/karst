@@ -8,6 +8,7 @@ import (
 	"karst/logger"
 	"karst/merkletree"
 	"karst/model"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,15 +28,16 @@ func init() {
 
 var declareWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "declare [merkle_tree] [provider]",
+		Use:   "declare [merkle_tree] [provider] [duration]",
 		Short: "Declare file to chain and request provider to generate store proof",
-		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part and the 'provider' is chain address",
-		Args:  cobra.MinimumNArgs(2),
+		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part, the 'provider' is chain address and 'duration' is number of blocks lasting for file storage",
+		Args:  cobra.MinimumNArgs(3),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
 		reqBody := map[string]string{
 			"merkle_tree": args[0],
 			"provider":    args[1],
+			"duration":    args[2],
 		}
 
 		return reqBody, nil
@@ -77,8 +79,27 @@ var declareWsCmd = &wsCmd{
 			}
 		}
 
+		duration, err := strconv.ParseUint(args["duration"], 10, 64)
+		if err != nil {
+			errString := err.Error()
+			logger.Error(errString)
+			return declareReturnMsg{
+				Info:   errString,
+				Status: 400,
+			}
+		}
+
+		if duration <= 300 {
+			errString := "The duration must be greater than 300"
+			logger.Error(errString)
+			return declareReturnMsg{
+				Info:   errString,
+				Status: 400,
+			}
+		}
+
 		// Declare message
-		declareReturnMsg := declareFile(mt, provider, wsc.Cfg)
+		declareReturnMsg := declareFile(mt, provider, duration, wsc.Cfg)
 		if declareReturnMsg.Status != 200 {
 			logger.Error(declareReturnMsg.Info)
 		} else {
@@ -90,9 +111,9 @@ var declareWsCmd = &wsCmd{
 	},
 }
 
-func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) declareReturnMsg {
+func declareFile(mt merkletree.MerkleTreeNode, provider string, duration uint64, cfg *config.Configuration) declareReturnMsg {
 	// Get provider seal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg.Crust.BaseUrl, provider)
+	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
 	if err != nil {
 		return declareReturnMsg{
 			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
@@ -104,7 +125,7 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, cfg *config.Conf
 	logger.Debug("Get file seal address '%s' of '%s' success.", karstFileSealAddr, provider)
 
 	// Send order
-	storeOrderHash, err := chain.PlaceStorageOrder(cfg.Crust.BaseUrl, cfg.Crust.Backup, cfg.Crust.Password, provider, "0x"+mt.Hash, mt.Size)
+	storeOrderHash, err := chain.PlaceStorageOrder(cfg, provider, duration, "0x"+mt.Hash, mt.Size)
 	if err != nil {
 		return declareReturnMsg{
 			Info:   fmt.Sprintf("Create store order failed, err is: %s", err),
