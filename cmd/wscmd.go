@@ -113,11 +113,13 @@ func (wsc *wsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 		wsc.sendBack(c, 400)
 		return
 	}
+	args["backup"] = "***backup***"
 	if args["password"] != wsc.Cfg.Crust.Password {
 		logger.Error("Wrong password")
 		wsc.sendBack(c, 400)
 		return
 	}
+	args["password"] = "***password***"
 
 	// Run deal function
 	wsc.sendBack(c, wsc.WsRunner(args, wsc))
