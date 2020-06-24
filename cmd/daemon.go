@@ -70,12 +70,12 @@ var daemonCmd = &cobra.Command{
 
 			// Register provider cmd apis
 			for _, wsCmd := range providerWsCommands {
-				wsCmd.Register(db, cfg)
+				wsCmd.Register(db, cfg, fs)
 			}
 
 			// Register base cmd apis
 			for _, wsCmd := range baseWsCommands {
-				wsCmd.Register(db, cfg)
+				wsCmd.Register(db, cfg, fs)
 			}
 
 			logger.Info("--------- Provider model ------------")
@@ -85,7 +85,7 @@ var daemonCmd = &cobra.Command{
 		} else {
 			// Register base cmd apis
 			for _, wsCmd := range baseWsCommands {
-				wsCmd.Register(db, cfg)
+				wsCmd.Register(db, cfg, nil)
 			}
 
 			logger.Info("---------- Client model -------------")

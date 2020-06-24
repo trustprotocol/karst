@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"karst/config"
+	"karst/filesystem"
 	"karst/logger"
 	"net/http"
 
@@ -14,6 +15,7 @@ import (
 type wsCmd struct {
 	Db         *leveldb.DB
 	Cfg        *config.Configuration
+	Fs         filesystem.FsInterface
 	Cmd        *cobra.Command
 	WsEndpoint string
 	Connecter  func(cmd *cobra.Command, args []string) (map[string]string, error)
@@ -135,8 +137,9 @@ func (wsc *wsCmd) sendBack(c *websocket.Conn, back interface{}) {
 	}
 }
 
-func (wsc *wsCmd) Register(db *leveldb.DB, cfg *config.Configuration) {
+func (wsc *wsCmd) Register(db *leveldb.DB, cfg *config.Configuration, fs filesystem.FsInterface) {
 	wsc.Db = db
 	wsc.Cfg = cfg
+	wsc.Fs = fs
 	http.HandleFunc("/api/v0/cmd/"+wsc.WsEndpoint, wsc.handleFunc)
 }
