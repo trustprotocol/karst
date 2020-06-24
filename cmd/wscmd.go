@@ -97,7 +97,6 @@ func (wsc *wsCmd) handleFunc(w http.ResponseWriter, r *http.Request) {
 		wsc.sendBack(c, 400)
 		return
 	}
-	logger.Debug("Recv: %s", message)
 
 	// Check backup
 	// TODO: support interface

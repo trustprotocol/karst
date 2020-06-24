@@ -23,7 +23,7 @@ func init() {
 var deleteWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "delete [file_hash]",
-		Short: "delete file with 'file_hash'",
+		Short: "delete file with 'file_hash' (for provider)",
 		Long:  "delete file with 'file_hash', 'file_hash' must be the hash of original file",
 		Args:  cobra.MinimumNArgs(1),
 	},
