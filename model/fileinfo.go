@@ -28,11 +28,11 @@ func (fileInfo *FileInfo) ClearFile() {
 
 func (fileInfo *FileInfo) ClearDb(db *leveldb.DB) {
 	if fileInfo.MerkleTree != nil {
-		_ = db.Delete([]byte(fileInfo.MerkleTree.Hash), nil)
+		_ = db.Delete([]byte(FileFlagInDb+fileInfo.MerkleTree.Hash), nil)
 	}
 
 	if fileInfo.MerkleTreeSealed != nil {
-		_ = db.Delete([]byte(fileInfo.MerkleTreeSealed.Hash), nil)
+		_ = db.Delete([]byte(SealedFileFlagInDb+fileInfo.MerkleTreeSealed.Hash), nil)
 	}
 }
 
