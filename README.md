@@ -1,7 +1,7 @@
 # Karst &middot; [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fcrustio%2Fcrust%2Fbadge&style=flat)](https://github.com/crustio/karst/actions?query=workflow%3AGo)
 Integrate and connect storage resources to serve the crust storage market
 
-<a href='https://web3.foundation/'><img width='320' alt='Funded by web3 foundation' src='docs/img/web3f_grants_badge.png'></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href='https://builders.parity.io/'><img width='360' src='docs/img/sbp_grants_badge.png'></a>
+<a href='https://web3.foundation/'><img width='220' alt='Funded by web3 foundation' src='docs/img/web3f_grants_badge.png'></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href='https://builders.parity.io/'><img width='260' src='docs/img/sbp_grants_badge.png'></a>
 
 ## Compiler Environment
 ```shell
@@ -76,6 +76,11 @@ For provider
   karst list
 ```
 
+- Delete your stored files
+```shell
+  karst delete e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef
+```
+
 For client
 
 - Set $KARST_PATH to change karst installation location, default location is $Home/.karst/
@@ -140,8 +145,8 @@ For client
 #### Return(list all files) 
 ```json
 {
-  "info":"List all files successfully in 38.361µs !",
-  "files":[{"hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef","size":1048567,"sealed_hash":"b6f5755923f5e82ed84274ad5f378d49f32f765a8c6a4a9921046226b5e21e97","sealed_size":1049127}],"status":200
+	"info":"List all files successfully in 38.361µs !",
+	"files":[{"hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef","size":1048567,"sealed_hash":"b6f5755923f5e82ed84274ad5f378d49f32f765a8c6a4a9921046226b5e21e97","sealed_size":1049127}],"status":200
 }
 ```
 
@@ -150,16 +155,34 @@ For client
 {
 	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
 	"password": "123456",
-  "file_hash": "e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef"
+	"file_hash": "e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef"
 }
 ```
 
 #### Return(list file details) 
 ```json
 {
-  "info":"List file 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' successfully in 50.668µs !",
-  "file":{"merkle_tree":{"hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef","size":1048567,"links_num":1,"links":[{"hash":"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970","size":1048567,"links_num":0,"links":[],"stored_key":"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992"}],"stored_key":""},"merkle_tree_sealed":{"hash":"b6f5755923f5e82ed84274ad5f378d49f32f765a8c6a4a9921046226b5e21e97","size":1049127,"links_num":1,"links":[{"hash":"0171c4f38bf451d1ab2250804ec24946f59d064a5d411074c4dc768724cc8d18","size":1049127,"links_num":0,"links":null,"stored_key":"group1/M00/00/5E/wKgyC17hn12AFsmSABACJ8njfU84021465"}],"stored_key":""},
-  "status":200
+	"info":"List file 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' successfully in 50.668µs !",
+	"file":{"merkle_tree":{"hash":"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef","size":1048567,"links_num":1,"links":[{"hash":"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970","size":1048567,"links_num":0,"links":[],"stored_key":"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992"}],"stored_key":""},"merkle_tree_sealed":{"hash":"b6f5755923f5e82ed84274ad5f378d49f32f765a8c6a4a9921046226b5e21e97","size":1049127,"links_num":1,"links":[{"hash":"0171c4f38bf451d1ab2250804ec24946f59d064a5d411074c4dc768724cc8d18","size":1049127,"links_num":0,"links":null,"stored_key":"group1/M00/00/5E/wKgyC17hn12AFsmSABACJ8njfU84021465"}],"stored_key":""},
+	"status":200
+}
+```
+
+### Delete /api/v0/cmd/delete
+#### Input
+```json
+{
+	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
+	"password": "123456",
+	"file_hash": "e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef"
+}
+```
+
+#### Return
+```json
+{
+	"info":"Delete 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' successful in 1.624281178s ! You can check it on crust.",
+	"status":200
 }
 ```
 
@@ -192,8 +215,8 @@ For client
 {
 	"backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
 	"password": "123456",
-  "merkle_tree": "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}",
-  "duration": "1000",
+	"merkle_tree": "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}",
+	"duration": "1000",
 	"provider": "5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX"
 }
 ```
@@ -219,9 +242,9 @@ For client
 #### Return
 ```json
 {
-  "info":"Obtain 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' from '5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA' successfully in 33.938813ms !",
-  "merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[],\"stored_key\":\"group1/M00/00/00/wKgyC17sdDyAYVuQAA__9-56uVA2354372\"}],\"stored_key\":\"\"}",
-  "status":200
+	"info":"Obtain 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' from '5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA' successfully in 33.938813ms !",
+	"merkle_tree":"{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[],\"stored_key\":\"group1/M00/00/00/wKgyC17sdDyAYVuQAA__9-56uVA2354372\"}],\"stored_key\":\"\"}",
+	"status":200
 }
 ```
 
@@ -239,8 +262,8 @@ For client
 #### Return
 ```json
 {
-  "info":"Request provider 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' to finish '5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA' successfully in 3.91568ms !",
-  "status":200
+	"info":"Request provider 'e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef' to finish '5HZFQohYpN4MVyGjiq8bJhojt9yCVa8rXd4Kt9fmh5gAbQqA' successfully in 3.91568ms !",
+	"status":200
 }
 ```
 
