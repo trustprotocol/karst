@@ -46,7 +46,7 @@ func clearFile(fileInfo *model.FileInfo, mt *merkletree.MerkleTreeNode, fs files
 		fileInfo.ClearFile()
 	}
 	if mt != nil {
-		_ = filesystem.DeleteFileFromFs(fileInfo.MerkleTree, fs)
+		_ = filesystem.DeleteFileFromFs(mt, fs)
 	}
 }
 
