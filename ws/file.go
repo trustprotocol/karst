@@ -73,6 +73,13 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
+	if sOrder.FileSize != fileSealMsg.MerkleTree.Size {
+		fileSealReturnMsg.Info = fmt.Sprintf("Invalid file size: %d, file_size in order: %d", fileSealMsg.MerkleTree.Size, sOrder.FileSize)
+		logger.Error(fileSealReturnMsg.Info)
+		fileSealReturnMsg.Status = 400
+		model.SendTextMessage(c, fileSealReturnMsg)
+		return
+	}
 	logger.Debug("Storage order '%s' check success!", fileSealMsg.StoreOrderHash)
 
 	// Check if merkle is legal
