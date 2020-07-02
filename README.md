@@ -25,7 +25,7 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
     "tracker_addrs": ["172.16.3.15:22122"]
   },
   "log_level": "debug",
-  "tee_base_url": "ws://127.0.0.1:12222/api/v0"
+  "tee_base_url": "127.0.0.1:12222/api/v0"
 }
 ```
 

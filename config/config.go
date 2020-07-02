@@ -97,7 +97,7 @@ func WriteDefault(configFilePath string) {
 	// Base configuration
 	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "")
-	viper.Set("log_level", "")
+	viper.Set("log_level", "info")
 
 	// Crust chain configuration
 	viper.Set("crust.base_url", "")
