@@ -149,7 +149,7 @@ func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) 
 
 func (tee *Tee) Confirm(sealedHash string) error {
 	// Generate request
-	url := tee.HttpBaseUrl + "/storage/unseal"
+	url := tee.HttpBaseUrl + "/storage/confirm"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -174,7 +174,8 @@ func (tee *Tee) Confirm(sealedHash string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Request confirm failed, error code is: %d", resp.StatusCode)
+		returnBody, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("Request confirm failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
 	}
 
 	returnBody, err := ioutil.ReadAll(resp.Body)

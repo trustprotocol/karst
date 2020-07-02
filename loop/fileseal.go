@@ -117,6 +117,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			if err = tee.Confirm(fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)
 				clearFile(fileInfo, job.MerkleTree, fs)
+				fileInfo.ClearDb(db)
 				continue
 			}
 
