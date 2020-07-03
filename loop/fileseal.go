@@ -110,9 +110,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			fileInfoBytes, _ := json.Marshal(fileInfo)
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
-			// Delete original file from fs
-			clearFile(fileInfo, job.MerkleTree, fs)
-
+			// TODO: Fix tee timeout issue
 			// Notificate TEE can detect
 			if err = tee.Confirm(fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)
@@ -120,6 +118,9 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				fileInfo.ClearDb(db)
 				continue
 			}
+
+			// Delete original file from fs
+			clearFile(fileInfo, job.MerkleTree, fs)
 
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 
