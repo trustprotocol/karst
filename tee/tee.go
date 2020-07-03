@@ -1,11 +1,14 @@
 package tee
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"karst/logger"
 	"karst/merkletree"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 )
@@ -23,8 +26,10 @@ type unsealBackMessage struct {
 }
 
 type Tee struct {
-	BaseUrl string
-	Backup  string
+	BaseUrl     string
+	WsBaseUrl   string
+	HttpBaseUrl string
+	Backup      string
 }
 
 func NewTee(baseUrl string, backup string) (*Tee, error) {
@@ -33,15 +38,17 @@ func NewTee(baseUrl string, backup string) (*Tee, error) {
 	}
 
 	return &Tee{
-		BaseUrl: baseUrl,
-		Backup:  backup,
+		BaseUrl:     baseUrl,
+		WsBaseUrl:   "ws://" + baseUrl,
+		HttpBaseUrl: "http://" + baseUrl,
+		Backup:      backup,
 	}, nil
 }
 
 // TODO: change to wss
 func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
-	url := tee.BaseUrl + "/storage/seal"
+	url := tee.WsBaseUrl + "/storage/seal"
 	logger.Info("Connecting to TEE '%s' to seal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -95,7 +102,7 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 
 func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
-	url := tee.BaseUrl + "/storage/unseal"
+	url := tee.WsBaseUrl + "/storage/unseal"
 	logger.Info("Connecting to TEE '%s' to unseal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -103,7 +110,7 @@ func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) 
 	}
 	defer c.Close()
 
-	// Send file to seal
+	// Send file to unseal
 	reqBody := map[string]interface{}{
 		"backup": tee.Backup,
 		"path":   path,
@@ -138,4 +145,44 @@ func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) 
 	}
 
 	return nil, unsealBackMes.Path, nil
+}
+
+func (tee *Tee) Confirm(sealedHash string) error {
+	// Generate request
+	url := tee.HttpBaseUrl + "/storage/confirm"
+	reqBody := map[string]interface{}{
+		"hash": sealedHash,
+	}
+
+	reqBodyBytes, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("backup", tee.Backup)
+
+	// Request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		returnBody, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("Request confirm failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
+	}
+
+	returnBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug(string(returnBody))
+	return nil
 }

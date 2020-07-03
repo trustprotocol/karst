@@ -64,6 +64,9 @@ func GetInstance() *Configuration {
 		config.TeeBaseUrl = viper.GetString("tee_base_url")
 		config.LogLevel = viper.GetString("log_level")
 		config.Crust.BaseUrl = viper.GetString("crust.base_url")
+		if config.Crust.BaseUrl != "" {
+			config.Crust.BaseUrl = "http://" + config.Crust.BaseUrl
+		}
 		config.Crust.Backup = viper.GetString("crust.backup")
 		config.Crust.Address = viper.GetString("crust.address")
 		config.Crust.Password = viper.GetString("crust.password")
@@ -97,7 +100,7 @@ func WriteDefault(configFilePath string) {
 	// Base configuration
 	viper.Set("base_url", "0.0.0.0:17000")
 	viper.Set("tee_base_url", "")
-	viper.Set("log_level", "")
+	viper.Set("log_level", "info")
 
 	// Crust chain configuration
 	viper.Set("crust.base_url", "")
