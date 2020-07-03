@@ -11,8 +11,9 @@ import (
 )
 
 type RegisterRequest struct {
-	AddressInfo string `json:"addressInfo"`
-	Backup      string `json:"backup"`
+	AddressInfo  string `json:"addressInfo"`
+	StoragePrice uint64 `json:"storagePrice"`
+	Backup       string `json:"backup"`
 }
 
 type Provider struct {
@@ -48,14 +49,15 @@ type SOrderResponse struct {
 	OrderId string `json:"orderId"`
 }
 
-func Register(cfg *config.Configuration, karstAddr string) error {
+func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) error {
 	header := req.Header{
 		"password": cfg.Crust.Password,
 	}
 
 	regReq := RegisterRequest{
-		AddressInfo: karstAddr,
-		Backup:      cfg.Crust.Backup,
+		AddressInfo:  karstAddr,
+		StoragePrice: storagePrice,
+		Backup:       cfg.Crust.Backup,
 	}
 
 	body := req.BodyJSON(&regReq)
