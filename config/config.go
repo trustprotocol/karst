@@ -26,18 +26,18 @@ type TeeConfiguration struct {
 	Backup      string
 	WsBaseUrl   string
 	HttpBaseUrl string
-	mutex       *sync.Mutex
 }
 
 type Configuration struct {
-	KarstPaths   *utils.KarstPaths
+	KarstPaths   utils.KarstPaths
 	BaseUrl      string
 	FilePartSize uint64
 	Backup       string
 	LogLevel     string
-	Crust        *CrustConfiguration
-	Fastdfs      *FastdfsConfiguration
-	Tee          *TeeConfiguration
+	Crust        CrustConfiguration
+	Fastdfs      FastdfsConfiguration
+	Tee          TeeConfiguration
+	mutex        sync.Mutex
 }
 
 var config *Configuration
@@ -113,20 +113,19 @@ func (cfg *Configuration) Show() {
 	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
-func (cfg *Configuration) GetTeeConfiguration() *TeeConfiguration {
-	tee := &TeeConfiguration{}
-	cfg.Tee.mutex.Lock()
-	tee.mutex = nil
+func (cfg *Configuration) GetTeeConfiguration() TeeConfiguration {
+	tee := TeeConfiguration{}
+	cfg.mutex.Lock()
 	tee.BaseUrl = cfg.Tee.BaseUrl
 	tee.Backup = cfg.Tee.Backup
 	tee.WsBaseUrl = cfg.Tee.WsBaseUrl
 	tee.HttpBaseUrl = cfg.Tee.HttpBaseUrl
-	cfg.Tee.mutex.Unlock()
+	cfg.mutex.Unlock()
 	return tee
 }
 
 func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
-	cfg.Tee.mutex.Lock()
+	cfg.mutex.Lock()
 	cfg.Tee.BaseUrl = baseUrl
 	cfg.Tee.HttpBaseUrl = "http://" + baseUrl
 	cfg.Tee.WsBaseUrl = "ws://" + baseUrl
@@ -135,7 +134,7 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
-	cfg.Tee.mutex.Unlock()
+	cfg.mutex.Unlock()
 	return nil
 }
 

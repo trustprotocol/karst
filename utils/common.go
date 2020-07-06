@@ -22,8 +22,8 @@ type KarstPaths struct {
 	DbPath          string
 }
 
-func GetKarstPaths() *KarstPaths {
-	karstPaths := &KarstPaths{}
+func GetKarstPaths() KarstPaths {
+	karstPaths := KarstPaths{}
 	karstPaths.InitPath = filepath.FromSlash(os.Getenv("HOME"))
 	karstPaths.KarstPath = filepath.FromSlash(os.Getenv("HOME") + "/.karst")
 	if karstTmpPath := os.Getenv("KARST_PATH"); karstTmpPath != "" {
