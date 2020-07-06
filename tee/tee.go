@@ -3,9 +3,9 @@ package tee
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
 	"net/http"
@@ -25,28 +25,9 @@ type unsealBackMessage struct {
 	Path   string
 }
 
-type Tee struct {
-	BaseUrl     string
-	WsBaseUrl   string
-	HttpBaseUrl string
-	Backup      string
-}
-
-func NewTee(baseUrl string, backup string) (*Tee, error) {
-	if backup == "" || baseUrl == "" {
-		return nil, errors.New("Fatal error in getting backup and tee base url")
-	}
-
-	return &Tee{
-		BaseUrl:     baseUrl,
-		WsBaseUrl:   "ws://" + baseUrl,
-		HttpBaseUrl: "http://" + baseUrl,
-		Backup:      backup,
-	}, nil
-}
-
 // TODO: change to wss
-func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
+func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
+	tee := cfg.GetTeeConfiguration()
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/seal"
 	logger.Info("Connecting to TEE '%s' to seal file", url)
@@ -100,7 +81,8 @@ func (tee *Tee) Seal(path string, merkleTree *merkletree.MerkleTreeNode) (*merkl
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) {
+func Unseal(cfg *config.Configuration, path string) (*merkletree.MerkleTreeNode, string, error) {
+	tee := cfg.GetTeeConfiguration()
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/unseal"
 	logger.Info("Connecting to TEE '%s' to unseal file", url)
@@ -147,7 +129,8 @@ func (tee *Tee) Unseal(path string) (*merkletree.MerkleTreeNode, string, error) 
 	return nil, unsealBackMes.Path, nil
 }
 
-func (tee *Tee) Confirm(sealedHash string) error {
+func Confirm(cfg *config.Configuration, sealedHash string) error {
+	tee := cfg.GetTeeConfiguration()
 	// Generate request
 	url := tee.HttpBaseUrl + "/storage/confirm"
 	reqBody := map[string]interface{}{
