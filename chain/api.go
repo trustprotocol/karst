@@ -11,8 +11,9 @@ import (
 )
 
 type RegisterRequest struct {
-	AddressInfo string `json:"addressInfo"`
-	Backup      string `json:"backup"`
+	AddressInfo  string `json:"addressInfo"`
+	StoragePrice uint64 `json:"storagePrice"`
+	Backup       string `json:"backup"`
 }
 
 type Provider struct {
@@ -26,7 +27,6 @@ type SOrderRequest struct {
 
 type StorageOrder struct {
 	Provider       string `json:"provider"`
-	Amount         uint64 `json:"amount"`
 	FileIdentifier string `json:"fileIdentifier"`
 	FileSize       uint64 `json:"fileSize"`
 	Duration       uint64 `json:"duration"`
@@ -48,14 +48,15 @@ type SOrderResponse struct {
 	OrderId string `json:"orderId"`
 }
 
-func Register(cfg *config.Configuration, karstAddr string) error {
+func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) error {
 	header := req.Header{
 		"password": cfg.Crust.Password,
 	}
 
 	regReq := RegisterRequest{
-		AddressInfo: karstAddr,
-		Backup:      cfg.Crust.Backup,
+		AddressInfo:  karstAddr,
+		StoragePrice: storagePrice,
+		Backup:       cfg.Crust.Backup,
 	}
 
 	body := req.BodyJSON(&regReq)
@@ -106,7 +107,6 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 
 	sOrder := StorageOrder{
 		Provider:       provider,
-		Amount:         0,
 		FileIdentifier: fId,
 		FileSize:       fSize,
 		Duration:       duration,
