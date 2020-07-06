@@ -22,10 +22,10 @@ const (
 
 var fileSealJobs chan model.FileSealMessage = nil
 
-func StartFileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInterface, tee *tee.Tee) {
+func StartFileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInterface) {
 	// Seal jobs queue
 	fileSealJobs = make(chan model.FileSealMessage, fileSealJobQueueLimit)
-	go fileSealLoop(cfg, db, fs, tee)
+	go fileSealLoop(cfg, db, fs)
 }
 
 func TryEnqueueFileSealJob(job model.FileSealMessage) bool {
@@ -50,7 +50,7 @@ func clearFile(fileInfo *model.FileInfo, mt *merkletree.MerkleTreeNode, fs files
 	}
 }
 
-func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInterface, tee *tee.Tee) {
+func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInterface) {
 	for {
 		select {
 		case job := <-fileSealJobs:
@@ -88,7 +88,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			}
 
 			// Send merkle tree to TEE for sealing
-			merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(fileInfo.StoredPath, fileInfo.MerkleTree)
+			merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(cfg, fileInfo.StoredPath, fileInfo.MerkleTree)
 			if err != nil {
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 				clearFile(fileInfo, job.MerkleTree, fs)
@@ -112,7 +112,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 
 			// TODO: Fix tee timeout issue
 			// Notificate TEE can detect
-			if err = tee.Confirm(fileInfo.MerkleTreeSealed.Hash); err != nil {
+			if err = tee.Confirm(cfg, fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)
 				clearFile(fileInfo, job.MerkleTree, fs)
 				fileInfo.ClearDb(db)

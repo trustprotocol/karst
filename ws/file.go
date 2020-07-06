@@ -7,6 +7,7 @@ import (
 	"karst/logger"
 	"karst/loop"
 	"karst/model"
+	"karst/tee"
 	"karst/utils"
 	"net/http"
 	"os"
@@ -206,7 +207,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Caching mechanism
 	// Unseal file
-	_, newFileStorePath, err := te.Unseal(fileInfoForUnseal.StoredPath)
+	_, newFileStorePath, err := tee.Unseal(cfg, fileInfoForUnseal.StoredPath)
 	if err != nil {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in unsealing file '%s' : %s", fileInfoForUnseal.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
