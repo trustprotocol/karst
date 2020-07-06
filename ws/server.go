@@ -33,6 +33,7 @@ func StartServer(inConfig *config.Configuration, inFs filesystem.FsInterface, in
 		http.HandleFunc("/api/v0/file/seal", fileSeal)
 		http.HandleFunc("/api/v0/file/unseal", fileUnseal)
 		http.HandleFunc("/api/v0/file/finish", fileFinish)
+		http.HandleFunc("/api/v0/transfer", transfer)
 	}
 
 	if err := http.ListenAndServe(cfg.BaseUrl, nil); err != nil {
