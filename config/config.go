@@ -81,12 +81,13 @@ func GetInstance() *Configuration {
 		}
 		// Chain
 		config.Crust.BaseUrl = viper.GetString("crust.base_url")
-		if config.Crust.BaseUrl != "" {
-			config.Crust.BaseUrl = "http://" + config.Crust.BaseUrl
-		}
 		config.Crust.Backup = viper.GetString("crust.backup")
 		config.Crust.Address = viper.GetString("crust.address")
 		config.Crust.Password = viper.GetString("crust.password")
+		if config.Crust.BaseUrl == "" || config.Crust.Backup == "" || config.Crust.Address == "" || config.Crust.Password == "" {
+			logger.Error("Please give right chain configuration")
+			os.Exit(-1)
+		}
 		// FS
 		config.Fastdfs.TrackerAddrs = viper.GetStringSlice("fastdfs.tracker_addrs")
 		config.Fastdfs.MaxConns = viper.GetInt("fastdfs.max_conns")
@@ -132,6 +133,9 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 	viper.SetConfigFile(cfg.KarstPaths.ConfigFilePath)
 	viper.Set("tee_base_url", baseUrl)
 	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+	if err := viper.WriteConfigAs(cfg.KarstPaths.ConfigFilePath); err != nil {
 		return err
 	}
 	cfg.mutex.Unlock()
