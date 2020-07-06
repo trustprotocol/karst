@@ -27,7 +27,6 @@ type SOrderRequest struct {
 
 type StorageOrder struct {
 	Provider       string `json:"provider"`
-	Amount         uint64 `json:"amount"`
 	FileIdentifier string `json:"fileIdentifier"`
 	FileSize       uint64 `json:"fileSize"`
 	Duration       uint64 `json:"duration"`
@@ -108,7 +107,6 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 
 	sOrder := StorageOrder{
 		Provider:       provider,
-		Amount:         0,
 		FileIdentifier: fId,
 		FileSize:       fSize,
 		Duration:       duration,
