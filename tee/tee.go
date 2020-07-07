@@ -9,6 +9,7 @@ import (
 	"karst/logger"
 	"karst/merkletree"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -145,7 +146,12 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	req.Header.Set("backup", tee.Backup)
 
 	// Request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -185,7 +191,12 @@ func Delete(tee *config.TeeConfiguration, sealedHash string) error {
 	req.Header.Set("backup", tee.Backup)
 
 	// Request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

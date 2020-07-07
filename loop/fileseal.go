@@ -112,7 +112,6 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			fileInfoBytes, _ := json.Marshal(fileInfo)
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
-			// TODO: Fix tee timeout issue
 			// Notificate TEE can detect
 			if err = tee.Confirm(teeConfig, fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)

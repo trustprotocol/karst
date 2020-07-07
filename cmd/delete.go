@@ -63,7 +63,7 @@ var deleteWsCmd = &wsCmd{
 		}
 
 		// Clear file from db
-		if err = tee.Delete(config.NewTeeConfiguration(wsc.Cfg.Backup, fileInfo.TeeBaseUrl), fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, wsc.Cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
 				Info:   err.Error(),
