@@ -114,8 +114,8 @@ func (cfg *Configuration) Show() {
 	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
-func (cfg *Configuration) GetTeeConfiguration() TeeConfiguration {
-	tee := TeeConfiguration{}
+func (cfg *Configuration) GetTeeConfiguration() *TeeConfiguration {
+	tee := &TeeConfiguration{}
 	cfg.mutex.Lock()
 	tee.BaseUrl = cfg.Tee.BaseUrl
 	tee.Backup = cfg.Tee.Backup
@@ -140,6 +140,15 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 	}
 	cfg.mutex.Unlock()
 	return nil
+}
+
+func NewTeeConfiguration(baseUrl string, backup string) *TeeConfiguration {
+	return &TeeConfiguration{
+		Backup:      backup,
+		BaseUrl:     baseUrl,
+		WsBaseUrl:   "ws://" + baseUrl,
+		HttpBaseUrl: "http://" + baseUrl,
+	}
 }
 
 func WriteDefault(configFilePath string) {

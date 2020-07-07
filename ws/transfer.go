@@ -2,11 +2,14 @@ package ws
 
 import (
 	"encoding/json"
+	"karst/config"
+	"karst/filesystem"
 	"karst/logger"
 	"karst/model"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 // URL: /transfer
@@ -59,7 +62,12 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 500 }"))
 		return
 	}
+	go transferLogic(cfg, fs, db)
 
 	// Send success message
 	_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
+}
+
+func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *leveldb.DB) {
+
 }

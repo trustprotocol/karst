@@ -26,8 +26,7 @@ type unsealBackMessage struct {
 }
 
 // TODO: change to wss
-func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
-	tee := cfg.GetTeeConfiguration()
+func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/seal"
 	logger.Info("Connecting to TEE '%s' to seal file", url)
@@ -81,8 +80,7 @@ func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleT
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func Unseal(cfg *config.Configuration, path string) (*merkletree.MerkleTreeNode, string, error) {
-	tee := cfg.GetTeeConfiguration()
+func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/unseal"
 	logger.Info("Connecting to TEE '%s' to unseal file", url)
@@ -129,8 +127,7 @@ func Unseal(cfg *config.Configuration, path string) (*merkletree.MerkleTreeNode,
 	return nil, unsealBackMes.Path, nil
 }
 
-func Confirm(cfg *config.Configuration, sealedHash string) error {
-	tee := cfg.GetTeeConfiguration()
+func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	// Generate request
 	url := tee.HttpBaseUrl + "/storage/confirm"
 	reqBody := map[string]interface{}{
