@@ -5,7 +5,6 @@ import (
 	"karst/config"
 	"karst/filesystem"
 	"karst/logger"
-	"karst/merkletree"
 	"karst/model"
 	"karst/tee"
 	"karst/utils"
@@ -41,15 +40,6 @@ func TryEnqueueFileSealJob(job model.FileSealMessage) bool {
 	}
 }
 
-func clearFile(fileInfo *model.FileInfo, mt *merkletree.MerkleTreeNode, fs filesystem.FsInterface) {
-	if fileInfo != nil {
-		fileInfo.ClearFile()
-	}
-	if mt != nil {
-		_ = filesystem.DeleteFileFromFs(mt, fs)
-	}
-}
-
 func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInterface) {
 	for {
 		select {
@@ -59,51 +49,61 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 
 			// TODO: Use cache to speed up get method
 			// TODO: Add mechanism to prevent malicious deletion
+			// File info
+			fileInfo := &model.FileInfo{
+				MerkleTree: job.MerkleTree,
+			}
+
 			// Check if the file has been stored locally
 			if ok, _ := db.Has([]byte(model.FileFlagInDb+job.MerkleTree.Hash), nil); ok {
 				logger.Info("The file '%s' has been stored already", job.MerkleTree.Hash)
-				clearFile(nil, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				continue
 			}
 
 			// Create file directory
-			fileStorePath := filepath.FromSlash(cfg.KarstPaths.SealFilesPath + "/" + job.MerkleTree.Hash)
-			if utils.IsDirOrFileExist(fileStorePath) {
+			originalPath := filepath.FromSlash(cfg.KarstPaths.SealFilesPath + "/" + job.MerkleTree.Hash)
+			if utils.IsDirOrFileExist(originalPath) {
 				logger.Info("The file '%s' is being sealed", job.MerkleTree.Hash)
-				clearFile(nil, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				continue
 			}
 
-			if err := os.MkdirAll(fileStorePath, os.ModePerm); err != nil {
+			if err := os.MkdirAll(originalPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating file store directory: %s", err)
-				clearFile(nil, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				continue
 			}
+			fileInfo.OriginalPath = originalPath
 
 			// Get file from fs
-			fileInfo, err := filesystem.GetOriginalFileFromFs(fileStorePath, fs, job.MerkleTree)
+			err := fileInfo.GetOriginalFileFromFs(fs)
 			if err != nil {
 				logger.Error("Get whole file failed, error is %s", err)
-				clearFile(fileInfo, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				fileInfo.ClearOriginalFile()
 				continue
 			}
 
 			teeConfig := cfg.GetTeeConfiguration()
 			// Send merkle tree to TEE for sealing
-			merkleTreeSealed, fileStorePathInSealedHash, err := tee.Seal(teeConfig, fileInfo.StoredPath, fileInfo.MerkleTree)
+			merkleTreeSealed, sealedPath, err := tee.Seal(teeConfig, fileInfo.OriginalPath, fileInfo.MerkleTree)
 			if err != nil {
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
-				clearFile(fileInfo, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				fileInfo.ClearOriginalFile()
 				continue
 			} else {
 				fileInfo.MerkleTreeSealed = merkleTreeSealed
-				fileInfo.StoredPath = fileStorePathInSealedHash
+				fileInfo.SealedPath = sealedPath
 			}
 			fileInfo.TeeBaseUrl = teeConfig.BaseUrl
 
 			// Save sealed file into fs
-			if err = filesystem.PutSealedFileIntoFs(fileInfo, fs); err != nil {
+			if err = fileInfo.PutSealedFileIntoFs(fs); err != nil {
 				logger.Error("Put whole file failed, error is %s", err)
-				clearFile(fileInfo, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				fileInfo.ClearSealedFile()
 				continue
 			}
 
@@ -116,13 +116,15 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			// Notificate TEE can detect
 			if err = tee.Confirm(teeConfig, fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)
-				clearFile(fileInfo, job.MerkleTree, fs)
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				fileInfo.ClearSealedFile()
 				fileInfo.ClearDb(db)
 				continue
 			}
 
 			// Delete original file from fs
-			clearFile(fileInfo, job.MerkleTree, fs)
+			_ = fileInfo.DeleteOriginalFileFromFs(fs)
+			fileInfo.ClearSealedFile()
 
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 

@@ -99,7 +99,7 @@ var splitWsCmd = &wsCmd{
 func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*model.FileInfo, error) {
 	// Create file information class
 	fileInfo := &model.FileInfo{
-		StoredPath:       "",
+		OriginalPath:     "",
 		MerkleTree:       nil,
 		MerkleTreeSealed: nil,
 	}
@@ -116,7 +116,7 @@ func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*
 	if err := os.MkdirAll(fileStorePathInBegin, os.ModePerm); err != nil {
 		return fileInfo, fmt.Errorf("Fatal error in creating file store directory: %s", err)
 	} else {
-		fileInfo.StoredPath = fileStorePathInBegin
+		fileInfo.OriginalPath = fileStorePathInBegin
 	}
 
 	fileStat, err := file.Stat()
@@ -148,7 +148,7 @@ func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*
 		partHashs = append(partHashs, partHash[:])
 		partSizes = append(partSizes, uint64(partSize))
 		partHashString := hex.EncodeToString(partHash[:])
-		partFileName := filepath.FromSlash(fileInfo.StoredPath + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
+		partFileName := filepath.FromSlash(fileInfo.OriginalPath + "/" + strconv.FormatUint(i, 10) + "_" + partHashString)
 
 		// Write to disk
 		partFile, err := os.Create(partFileName)
@@ -168,14 +168,14 @@ func splitFile(filePath string, outputPath string, cfg *config.Configuration) (*
 	fileStorePathInHash := filepath.FromSlash(outputPath + "/" + fileMerkleTree.Hash)
 
 	if !utils.IsDirOrFileExist(fileStorePathInHash) {
-		if err = os.Rename(fileInfo.StoredPath, fileStorePathInHash); err != nil {
-			return fileInfo, fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", fileInfo.StoredPath, fileStorePathInHash, err)
+		if err = os.Rename(fileInfo.OriginalPath, fileStorePathInHash); err != nil {
+			return fileInfo, fmt.Errorf("Fatal error in renaming '%s' to '%s': %s", fileInfo.OriginalPath, fileStorePathInHash, err)
 		} else {
-			fileInfo.StoredPath = fileStorePathInHash
+			fileInfo.OriginalPath = fileStorePathInHash
 		}
 	} else {
-		os.RemoveAll(fileInfo.StoredPath)
-		fileInfo.StoredPath = fileStorePathInHash
+		os.RemoveAll(fileInfo.OriginalPath)
+		fileInfo.OriginalPath = fileStorePathInHash
 	}
 
 	fileInfo.MerkleTree = fileMerkleTree

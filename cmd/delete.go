@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"karst/filesystem"
 	"karst/logger"
 	"karst/model"
 	"time"
@@ -65,7 +64,7 @@ var deleteWsCmd = &wsCmd{
 		fileInfo.ClearDb(wsc.Db)
 
 		// Clear file
-		err = filesystem.DeleteFileFromFs(fileInfo.MerkleTreeSealed, wsc.Fs)
+		err = fileInfo.DeleteSealedFileFromFs(wsc.Fs)
 		if err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
