@@ -166,3 +166,43 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	logger.Debug(string(returnBody))
 	return nil
 }
+
+func Delete(tee *config.TeeConfiguration, sealedHash string) error {
+	// Generate request
+	url := tee.HttpBaseUrl + "/storage/delete"
+	reqBody := map[string]interface{}{
+		"hash": sealedHash,
+	}
+
+	reqBodyBytes, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("backup", tee.Backup)
+
+	// Request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		returnBody, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("Request delete failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
+	}
+
+	returnBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug(string(returnBody))
+	return nil
+}
