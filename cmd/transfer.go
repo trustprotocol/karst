@@ -1,108 +1,122 @@
-package ws
+package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"karst/config"
 	"karst/filesystem"
 	"karst/logger"
 	"karst/model"
 	"karst/tee"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
 )
+
+type transferReturnMessage struct {
+	Info   string `json:"info"`
+	Status int    `json:"status"`
+}
 
 var transferMutex sync.Mutex
 var isTransfering bool = false
 
-// URL: /transfer
-func transfer(w http.ResponseWriter, r *http.Request) {
-	// Upgrade http to ws
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		logger.Error("Upgrade: %s", err)
-		return
-	}
-	defer c.Close()
+func init() {
+	transferWsCmd.ConnectCmdAndWs()
+	rootCmd.AddCommand(transferWsCmd.Cmd)
+}
 
-	// Check input
-	mt, message, err := c.ReadMessage()
-	if err != nil {
-		logger.Error("(Transfer) Read err: %s", err)
-		return
-	}
+var transferWsCmd = &wsCmd{
+	Cmd: &cobra.Command{
+		Use:   "transfer [base_url]",
+		Short: "transfer files to 'base_url' TEE (for provider)",
+		Long:  "transfer files to 'base_url' TEE, 'base_url' must be different from now tee base url in configuration",
+		Args:  cobra.MinimumNArgs(1),
+	},
+	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
+		reqBody := map[string]string{
+			"base_url": args[0],
+		}
 
-	if mt != websocket.TextMessage {
-		logger.Error("(Transfer) Wrong message type is %d", mt)
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		return
-	}
+		return reqBody, nil
+	},
+	WsEndpoint: "transfer",
+	WsRunner: func(args map[string]string, wsc *wsCmd) interface{} {
+		// Base class
+		timeStart := time.Now()
+		logger.Debug("(Transfer) Input is %s", args)
 
-	var transferMes model.TransferMessage
-	err = json.Unmarshal([]byte(message), &transferMes)
-	if err != nil {
-		logger.Error("(Transfer) Unmarshal failed: %s", err)
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		return
-	}
+		// Check input
+		baseUrl := args["base_url"]
+		if baseUrl == "" {
+			errString := "(Transfer) The field 'base_url' is needed"
+			logger.Error(errString)
+			return transferReturnMessage{
+				Info:   errString,
+				Status: 400,
+			}
+		}
 
-	if transferMes.Backup != cfg.Crust.Backup {
-		logger.Error("(Transfer) Need right backup")
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		return
-	}
-
-	if transferMes.BaseUrl == "" {
-		logger.Error("(Transfer) 'base_url' is needed")
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		return
-	}
-
-	// Check is transfering
-	transferMutex.Lock()
-	if isTransfering {
-		logger.Error("(Transfer) Files are already being transfered.")
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 403 }"))
-		transferMutex.Unlock()
-		return
-	}
-	isTransfering = true
-	transferMutex.Unlock()
-
-	if cfg.GetTeeConfiguration().BaseUrl == transferMes.BaseUrl {
-		logger.Error("(Transfer) Same tee url: %s", transferMes.BaseUrl)
+		// Check is transfering
 		transferMutex.Lock()
-		isTransfering = false
+		if isTransfering {
+			errString := "(Transfer) Files are already being transfered."
+			logger.Error(errString)
+			transferMutex.Unlock()
+			return transferReturnMessage{
+				Info:   errString,
+				Status: 403,
+			}
+		}
+		isTransfering = true
 		transferMutex.Unlock()
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
-		return
-	}
 
-	logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", cfg.GetTeeConfiguration().BaseUrl, transferMes.BaseUrl)
-	cfg.Lock()
-	err = cfg.SetTeeConfiguration(transferMes.BaseUrl)
-	if err != nil {
-		logger.Error("(Transfer) Set tee configuration error: %s", err)
-		transferMutex.Lock()
-		isTransfering = false
-		transferMutex.Unlock()
-		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 500 }"))
-		cfg.Unlock()
-		return
-	}
-	cfg.Unlock()
-	go transferLogic(cfg, fs, db)
+		// Check if the base url of TEE is the same
+		if wsc.Cfg.GetTeeConfiguration().BaseUrl == baseUrl {
+			errString := fmt.Sprintf("(Transfer) Same tee base url: %s", baseUrl)
+			logger.Error(errString)
+			transferMutex.Lock()
+			isTransfering = false
+			transferMutex.Unlock()
+			return transferReturnMessage{
+				Info:   errString,
+				Status: 400,
+			}
+		}
 
-	// Send success message
-	_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 200 }"))
+		logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", wsc.Cfg.GetTeeConfiguration().BaseUrl, baseUrl)
+		wsc.Cfg.Lock()
+		err := wsc.Cfg.SetTeeConfiguration(baseUrl)
+		if err != nil {
+			errString := fmt.Sprintf("(Transfer) Set tee configuration error: %s", err)
+			logger.Error(errString)
+			transferMutex.Lock()
+			isTransfering = false
+			transferMutex.Unlock()
+			wsc.Cfg.Unlock()
+			return transferReturnMessage{
+				Info:   errString,
+				Status: 500,
+			}
+		}
+		wsc.Cfg.Unlock()
+		go transferLogic(wsc.Cfg, wsc.Fs, wsc.Db)
+
+		deleteReturnMsg := transferReturnMessage{
+			Info:   fmt.Sprintf("(Transfer) Job has been arranged in %s !", time.Since(timeStart)),
+			Status: 200,
+		}
+		logger.Info(deleteReturnMsg.Info)
+		return deleteReturnMsg
+	},
 }
 
 func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *leveldb.DB) {
+	transferedFilesNum := 0
 	iter := db.NewIterator(nil, nil)
 	prefix := []byte(model.SealedFileFlagInDb)
 	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
@@ -196,7 +210,8 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		}
 
 		newFileInfo.ClearFile()
-		logger.Debug("(Transfer) The file '%s' transfer successfully in %s", newFileInfo.MerkleTree.Hash, time.Since(timeStart))
+		transferedFilesNum = transferedFilesNum + 1
+		logger.Debug("(Transfer) The '%d' file '%s' transfer successfully in %s", transferedFilesNum, newFileInfo.MerkleTree.Hash, time.Since(timeStart))
 	}
 
 	transferMutex.Lock()
