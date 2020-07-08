@@ -45,6 +45,7 @@ var daemonCmd = &cobra.Command{
 			registerWsCmd,
 			listWsCmd,
 			deleteWsCmd,
+			transferWsCmd,
 		}
 
 		// Sever model

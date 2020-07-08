@@ -30,7 +30,6 @@ type unsealBackMessage struct {
 func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/seal"
-	logger.Info("Connecting to TEE '%s' to seal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -48,7 +47,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 	if err != nil {
 		return nil, "", err
 	} else {
-		logger.Debug("Request body for sealing: %s", string(reqBodyBytes))
+		logger.Debug("(TEE) Request body for sealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -61,7 +60,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 	if err != nil {
 		return nil, "", err
 	}
-	logger.Debug("Recv: %s", message)
+	logger.Debug("(TEE) Recv: %s", message)
 
 	var sealedMsg sealedMessage
 	err = json.Unmarshal([]byte(message), &sealedMsg)
@@ -84,7 +83,6 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/unseal"
-	logger.Info("Connecting to TEE '%s' to unseal file", url)
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -101,7 +99,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 	if err != nil {
 		return nil, "", err
 	} else {
-		logger.Debug("Request body for unsealing: %s", string(reqBodyBytes))
+		logger.Debug("(TEE) Request body for unsealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -114,7 +112,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 	if err != nil {
 		return nil, "", err
 	}
-	logger.Debug("Recv: %s", message)
+	logger.Debug("(TEE) Recv: %s", message)
 
 	var unsealBackMes unsealBackMessage
 	err = json.Unmarshal([]byte(message), &unsealBackMes)
@@ -169,7 +167,7 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 		return err
 	}
 
-	logger.Debug(string(returnBody))
+	logger.Debug("(TEE) " + string(returnBody))
 	return nil
 }
 
@@ -214,6 +212,6 @@ func Delete(tee *config.TeeConfiguration, sealedHash string) error {
 		return err
 	}
 
-	logger.Debug(string(returnBody))
+	logger.Debug("(TEE) " + string(returnBody))
 	return nil
 }
