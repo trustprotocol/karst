@@ -116,17 +116,14 @@ func (cfg *Configuration) Show() {
 
 func (cfg *Configuration) GetTeeConfiguration() *TeeConfiguration {
 	tee := &TeeConfiguration{}
-	cfg.mutex.Lock()
 	tee.BaseUrl = cfg.Tee.BaseUrl
 	tee.Backup = cfg.Tee.Backup
 	tee.WsBaseUrl = cfg.Tee.WsBaseUrl
 	tee.HttpBaseUrl = cfg.Tee.HttpBaseUrl
-	cfg.mutex.Unlock()
 	return tee
 }
 
 func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
-	cfg.mutex.Lock()
 	cfg.Tee.BaseUrl = baseUrl
 	cfg.Tee.HttpBaseUrl = "http://" + baseUrl
 	cfg.Tee.WsBaseUrl = "ws://" + baseUrl
@@ -138,8 +135,15 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 	if err := viper.WriteConfigAs(cfg.KarstPaths.ConfigFilePath); err != nil {
 		return err
 	}
-	cfg.mutex.Unlock()
 	return nil
+}
+
+func (cfg *Configuration) Lock() {
+	cfg.mutex.Lock()
+}
+
+func (cfg *Configuration) Unlock() {
+	cfg.mutex.Unlock()
 }
 
 func NewTeeConfiguration(baseUrl string, backup string) *TeeConfiguration {

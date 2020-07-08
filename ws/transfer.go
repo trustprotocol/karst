@@ -84,6 +84,7 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", cfg.GetTeeConfiguration().BaseUrl, transferMes.BaseUrl)
+	cfg.Lock()
 	err = cfg.SetTeeConfiguration(transferMes.BaseUrl)
 	if err != nil {
 		logger.Error("(Transfer) Set tee configuration error: %s", err)
@@ -91,9 +92,10 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 		isTransfering = false
 		transferMutex.Unlock()
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 500 }"))
+		cfg.Unlock()
 		return
 	}
-
+	cfg.Unlock()
 	go transferLogic(cfg, fs, db)
 
 	// Send success message
