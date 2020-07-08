@@ -88,7 +88,8 @@ var transferWsCmd = &wsCmd{
 			}
 		}
 
-		logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", wsc.Cfg.GetTeeConfiguration().BaseUrl, baseUrl)
+		oldTeeConfig := wsc.Cfg.GetTeeConfiguration()
+		logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", oldTeeConfig.BaseUrl, baseUrl)
 		wsc.Cfg.Lock()
 		err := wsc.Cfg.SetTeeConfiguration(baseUrl)
 		if err != nil {
@@ -104,7 +105,7 @@ var transferWsCmd = &wsCmd{
 			}
 		}
 		wsc.Cfg.Unlock()
-		go transferLogic(wsc.Cfg, wsc.Fs, wsc.Db)
+		go transferLogic(oldTeeConfig.BaseUrl, wsc.Cfg, wsc.Fs, wsc.Db)
 
 		deleteReturnMsg := transferReturnMessage{
 			Info:   fmt.Sprintf("(Transfer) Job has been arranged in %s !", time.Since(timeStart)),
@@ -115,8 +116,9 @@ var transferWsCmd = &wsCmd{
 	},
 }
 
-func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *leveldb.DB) {
+func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesystem.FsInterface, db *leveldb.DB) {
 	transferedFilesNum := 0
+	hasError := false
 	iter := db.NewIterator(nil, nil)
 	prefix := []byte(model.SealedFileFlagInDb)
 	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
@@ -124,6 +126,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		fileInfo := model.FileInfo{}
 		if err := json.Unmarshal(iter.Value(), &fileInfo); err != nil {
 			logger.Error("(Transfer) %s", err)
+			hasError = true
 			break
 		}
 
@@ -139,6 +142,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		sealedPath := filepath.FromSlash(cfg.KarstPaths.TransferFilesPath + "/" + fileInfo.MerkleTreeSealed.Hash)
 		if err := os.MkdirAll(sealedPath, os.ModePerm); err != nil {
 			logger.Error("(Transfer) Fatal error in creating file store directory: %s", err)
+			hasError = true
 			break
 		}
 		fileInfo.SealedPath = sealedPath
@@ -147,6 +151,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err := fileInfo.GetSealedFileFromFs(fs); err != nil {
 			logger.Error("(Transfer) %s", err)
 			fileInfo.ClearFile()
+			hasError = true
 			break
 		}
 
@@ -155,6 +160,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err != nil {
 			logger.Error("(Transfer) Fatal error in unsealing file '%s', %s", fileInfo.MerkleTreeSealed.Hash, err)
 			fileInfo.ClearFile()
+			hasError = true
 			break
 		}
 		fileInfo.OriginalPath = originalPath
@@ -164,6 +170,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err != nil {
 			logger.Error("(Transfer) Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 			fileInfo.ClearFile()
+			hasError = true
 			break
 		}
 
@@ -180,6 +187,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err = newFileInfo.PutSealedFileIntoFs(fs); err != nil {
 			logger.Error("(Transfer) Fatal error in putting sealed file '%s' : %s", newFileInfo.MerkleTreeSealed.Hash, err)
 			newFileInfo.ClearFile()
+			hasError = true
 			break
 		}
 
@@ -187,6 +195,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("(Transfer) Fatal error in deleting old file '%s' from TEE : %s", fileInfo.MerkleTree.Hash, err)
 			newFileInfo.ClearFile()
+			hasError = true
 			break
 		}
 
@@ -194,6 +203,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		if err = fileInfo.DeleteSealedFileFromFs(fs); err != nil {
 			logger.Error("(Transfer) Fatal error in deleting old sealed file '%s' from Fs : %s", fileInfo.MerkleTree.Hash, err)
 			newFileInfo.ClearFile()
+			hasError = true
 			break
 		}
 
@@ -206,12 +216,20 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 			logger.Error("(Transfer) Tee file confirm failed, error is %s", err)
 			newFileInfo.ClearFile()
 			newFileInfo.ClearDb(db)
+			hasError = true
 			break
 		}
 
 		newFileInfo.ClearFile()
 		transferedFilesNum = transferedFilesNum + 1
-		logger.Debug("(Transfer) The '%d' file '%s' transfer successfully in %s", transferedFilesNum, newFileInfo.MerkleTree.Hash, time.Since(timeStart))
+		logger.Debug("(Transfer) The %d file '%s' transfer successfully in %s", transferedFilesNum, newFileInfo.MerkleTree.Hash, time.Since(timeStart))
+	}
+
+	// Return back to old tee base url
+	if hasError {
+		cfg.Lock()
+		_ = cfg.SetTeeConfiguration(oldTeeBaseUrl)
+		cfg.Unlock()
 	}
 
 	transferMutex.Lock()
