@@ -45,7 +45,7 @@ type FullStorageOrder struct {
 }
 
 type SOrderResponse struct {
-	OrderId string `json:"orderId"`
+	OrderId string `json:"order_id"`
 }
 
 func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) error {

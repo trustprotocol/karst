@@ -9,6 +9,7 @@ import (
 	"karst/logger"
 	"karst/merkletree"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -26,8 +27,7 @@ type unsealBackMessage struct {
 }
 
 // TODO: change to wss
-func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
-	tee := cfg.GetTeeConfiguration()
+func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/seal"
 	logger.Info("Connecting to TEE '%s' to seal file", url)
@@ -81,8 +81,7 @@ func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleT
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func Unseal(cfg *config.Configuration, path string) (*merkletree.MerkleTreeNode, string, error) {
-	tee := cfg.GetTeeConfiguration()
+func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
 	url := tee.WsBaseUrl + "/storage/unseal"
 	logger.Info("Connecting to TEE '%s' to unseal file", url)
@@ -129,8 +128,7 @@ func Unseal(cfg *config.Configuration, path string) (*merkletree.MerkleTreeNode,
 	return nil, unsealBackMes.Path, nil
 }
 
-func Confirm(cfg *config.Configuration, sealedHash string) error {
-	tee := cfg.GetTeeConfiguration()
+func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	// Generate request
 	url := tee.HttpBaseUrl + "/storage/confirm"
 	reqBody := map[string]interface{}{
@@ -148,7 +146,12 @@ func Confirm(cfg *config.Configuration, sealedHash string) error {
 	req.Header.Set("backup", tee.Backup)
 
 	// Request
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -159,6 +162,51 @@ func Confirm(cfg *config.Configuration, sealedHash string) error {
 	if resp.StatusCode != 200 {
 		returnBody, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("Request confirm failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
+	}
+
+	returnBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug(string(returnBody))
+	return nil
+}
+
+func Delete(tee *config.TeeConfiguration, sealedHash string) error {
+	// Generate request
+	url := tee.HttpBaseUrl + "/storage/delete"
+	reqBody := map[string]interface{}{
+		"hash": sealedHash,
+	}
+
+	reqBodyBytes, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("backup", tee.Backup)
+
+	// Request
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		returnBody, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("Request delete failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
 	}
 
 	returnBody, err := ioutil.ReadAll(resp.Body)
