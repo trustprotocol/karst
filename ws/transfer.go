@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -32,12 +33,12 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	// Check input
 	mt, message, err := c.ReadMessage()
 	if err != nil {
-		logger.Error("Read err: %s", err)
+		logger.Error("(Transfer) Read err: %s", err)
 		return
 	}
 
 	if mt != websocket.TextMessage {
-		logger.Error("Wrong message type is %d", mt)
+		logger.Error("(Transfer) Wrong message type is %d", mt)
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		return
 	}
@@ -45,19 +46,19 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	var transferMes model.TransferMessage
 	err = json.Unmarshal([]byte(message), &transferMes)
 	if err != nil {
-		logger.Error("Unmarshal failed: %s", err)
+		logger.Error("(Transfer) Unmarshal failed: %s", err)
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		return
 	}
 
 	if transferMes.Backup != cfg.Crust.Backup {
-		logger.Error("Need right backup")
+		logger.Error("(Transfer) Need right backup")
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		return
 	}
 
 	if transferMes.BaseUrl == "" {
-		logger.Error("'base_url' is needed")
+		logger.Error("(Transfer) 'base_url' is needed")
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
 		return
 	}
@@ -65,7 +66,7 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	// Check is transfering
 	transferMutex.Lock()
 	if isTransfering {
-		logger.Error("Files are already being transfered.")
+		logger.Error("(Transfer) Files are already being transfered.")
 		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 403 }"))
 		transferMutex.Unlock()
 		return
@@ -73,10 +74,10 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	isTransfering = true
 	transferMutex.Unlock()
 
-	logger.Info("Start transfering files from '%s' to '%s'.", cfg.GetTeeConfiguration().BaseUrl, transferMes.BaseUrl)
+	logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", cfg.GetTeeConfiguration().BaseUrl, transferMes.BaseUrl)
 	err = cfg.SetTeeConfiguration(transferMes.BaseUrl)
 	if err != nil {
-		logger.Error("Set tee configuration error: %s", err)
+		logger.Error("(Transfer) Set tee configuration error: %s", err)
 		transferMutex.Lock()
 		isTransfering = false
 		transferMutex.Unlock()
@@ -91,7 +92,6 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 }
 
 func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *leveldb.DB) {
-
 	iter := db.NewIterator(nil, nil)
 	prefix := []byte(model.SealedFileFlagInDb)
 	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
@@ -109,6 +109,8 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 			continue
 		}
 
+		timeStart := time.Now()
+
 		sealedPath := filepath.FromSlash(cfg.KarstPaths.TransferFilesPath + "/" + fileInfo.MerkleTreeSealed.Hash)
 		if err := os.MkdirAll(sealedPath, os.ModePerm); err != nil {
 			logger.Error("(Transfer) Fatal error in creating file store directory: %s", err)
@@ -117,7 +119,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		fileInfo.SealedPath = sealedPath
 
 		// Get old sealed file from fs
-		if err := fileInfo.GetOriginalFileFromFs(fs); err != nil {
+		if err := fileInfo.GetSealedFileFromFs(fs); err != nil {
 			logger.Error("(Transfer) %s", err)
 			fileInfo.ClearFile()
 			break
@@ -183,6 +185,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		}
 
 		newFileInfo.ClearFile()
+		logger.Debug("(Transfer) The file '%s' transfer successfully in %s", newFileInfo.MerkleTree.Hash, time.Since(timeStart))
 	}
 
 	transferMutex.Lock()
