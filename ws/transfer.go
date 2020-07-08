@@ -74,6 +74,15 @@ func transfer(w http.ResponseWriter, r *http.Request) {
 	isTransfering = true
 	transferMutex.Unlock()
 
+	if cfg.GetTeeConfiguration().BaseUrl == transferMes.BaseUrl {
+		logger.Error("(Transfer) Same tee url: %s", transferMes.BaseUrl)
+		transferMutex.Lock()
+		isTransfering = false
+		transferMutex.Unlock()
+		_ = c.WriteMessage(websocket.TextMessage, []byte("{ \"status\": 400 }"))
+		return
+	}
+
 	logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", cfg.GetTeeConfiguration().BaseUrl, transferMes.BaseUrl)
 	err = cfg.SetTeeConfiguration(transferMes.BaseUrl)
 	if err != nil {
@@ -159,7 +168,7 @@ func transferLogic(cfg *config.Configuration, fs filesystem.FsInterface, db *lev
 		}
 
 		// Delete old file from old TEE
-		if err = tee.Delete(teeConfig, fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("(Transfer) Fatal error in deleting old file '%s' from TEE : %s", fileInfo.MerkleTree.Hash, err)
 			newFileInfo.ClearFile()
 			break
