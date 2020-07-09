@@ -90,7 +90,7 @@ var declareWsCmd = &wsCmd{
 		}
 
 		if duration <= 30 {
-			errString := "The duration must be greater than 300"
+			errString := "The duration must be greater than 30"
 			logger.Error(errString)
 			return declareReturnMsg{
 				Info:   errString,

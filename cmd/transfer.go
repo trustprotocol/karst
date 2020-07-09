@@ -48,12 +48,12 @@ var transferWsCmd = &wsCmd{
 	WsRunner: func(args map[string]string, wsc *wsCmd) interface{} {
 		// Base class
 		timeStart := time.Now()
-		logger.Debug("(Transfer) Input is %s", args)
+		logger.Debug("Input is %s", args)
 
 		// Check input
 		baseUrl := args["base_url"]
 		if baseUrl == "" {
-			errString := "(Transfer) The field 'base_url' is needed"
+			errString := "The field 'base_url' is needed"
 			logger.Error(errString)
 			return transferReturnMessage{
 				Info:   errString,
@@ -64,7 +64,7 @@ var transferWsCmd = &wsCmd{
 		// Check is transfering
 		transferMutex.Lock()
 		if isTransfering {
-			errString := "(Transfer) Files are already being transfered."
+			errString := "Files are already being transfered."
 			logger.Error(errString)
 			transferMutex.Unlock()
 			return transferReturnMessage{
@@ -77,7 +77,7 @@ var transferWsCmd = &wsCmd{
 
 		// Check if the base url of TEE is the same
 		if wsc.Cfg.GetTeeConfiguration().BaseUrl == baseUrl {
-			errString := fmt.Sprintf("(Transfer) Same tee base url: %s", baseUrl)
+			errString := fmt.Sprintf("Same tee base url: %s", baseUrl)
 			logger.Error(errString)
 			transferMutex.Lock()
 			isTransfering = false
@@ -89,11 +89,11 @@ var transferWsCmd = &wsCmd{
 		}
 
 		oldTeeConfig := wsc.Cfg.GetTeeConfiguration()
-		logger.Info("(Transfer) Start transfering files from '%s' to '%s'.", oldTeeConfig.BaseUrl, baseUrl)
+		logger.Info("Start transfering files from '%s' to '%s'.", oldTeeConfig.BaseUrl, baseUrl)
 		wsc.Cfg.Lock()
 		err := wsc.Cfg.SetTeeConfiguration(baseUrl)
 		if err != nil {
-			errString := fmt.Sprintf("(Transfer) Set tee configuration error: %s", err)
+			errString := fmt.Sprintf("Set tee configuration error: %s", err)
 			logger.Error(errString)
 			transferMutex.Lock()
 			isTransfering = false
@@ -108,7 +108,7 @@ var transferWsCmd = &wsCmd{
 		go transferLogic(oldTeeConfig.BaseUrl, wsc.Cfg, wsc.Fs, wsc.Db)
 
 		deleteReturnMsg := transferReturnMessage{
-			Info:   fmt.Sprintf("(Transfer) Job has been arranged in %s !", time.Since(timeStart)),
+			Info:   fmt.Sprintf("Transfer job has been arranged in %s !", time.Since(timeStart)),
 			Status: 200,
 		}
 		logger.Info(deleteReturnMsg.Info)
@@ -125,7 +125,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 		// Get file info
 		fileInfo := model.FileInfo{}
 		if err := json.Unmarshal(iter.Value(), &fileInfo); err != nil {
-			logger.Error("(Transfer) %s", err)
+			logger.Error("%s", err)
 			hasError = true
 			break
 		}
@@ -133,7 +133,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 		teeConfig := cfg.GetTeeConfiguration()
 		// Determine if migration is required
 		if fileInfo.TeeBaseUrl == teeConfig.BaseUrl {
-			logger.Debug("(Transfer) The file '%s' is already belong to the TEE: '%s'.", fileInfo.MerkleTree.Hash, cfg.Tee.BaseUrl)
+			logger.Debug("The file '%s' is already belong to the TEE: '%s'.", fileInfo.MerkleTree.Hash, cfg.Tee.BaseUrl)
 			continue
 		}
 
@@ -141,7 +141,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		sealedPath := filepath.FromSlash(cfg.KarstPaths.TransferFilesPath + "/" + fileInfo.MerkleTreeSealed.Hash)
 		if err := os.MkdirAll(sealedPath, os.ModePerm); err != nil {
-			logger.Error("(Transfer) Fatal error in creating file store directory: %s", err)
+			logger.Error("Fatal error in creating file store directory: %s", err)
 			hasError = true
 			break
 		}
@@ -149,7 +149,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		// Get old sealed file from fs
 		if err := fileInfo.GetSealedFileFromFs(fs); err != nil {
-			logger.Error("(Transfer) %s", err)
+			logger.Error("%s", err)
 			fileInfo.ClearFile()
 			hasError = true
 			break
@@ -158,7 +158,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 		// Unseal old file
 		_, originalPath, err := tee.Unseal(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, cfg.Backup), fileInfo.SealedPath)
 		if err != nil {
-			logger.Error("(Transfer) Fatal error in unsealing file '%s', %s", fileInfo.MerkleTreeSealed.Hash, err)
+			logger.Error("Fatal error in unsealing file '%s', %s", fileInfo.MerkleTreeSealed.Hash, err)
 			fileInfo.ClearFile()
 			hasError = true
 			break
@@ -168,7 +168,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 		// Seal file by using new TEE
 		merkleTreeSealed, sealedPath, err := tee.Seal(teeConfig, fileInfo.OriginalPath, fileInfo.MerkleTree)
 		if err != nil {
-			logger.Error("(Transfer) Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
+			logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 			fileInfo.ClearFile()
 			hasError = true
 			break
@@ -185,7 +185,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		// Save new sealed file into fs
 		if err = newFileInfo.PutSealedFileIntoFs(fs); err != nil {
-			logger.Error("(Transfer) Fatal error in putting sealed file '%s' : %s", newFileInfo.MerkleTreeSealed.Hash, err)
+			logger.Error("Fatal error in putting sealed file '%s' : %s", newFileInfo.MerkleTreeSealed.Hash, err)
 			newFileInfo.ClearFile()
 			hasError = true
 			break
@@ -193,7 +193,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		// Delete old file from old TEE
 		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
-			logger.Error("(Transfer) Fatal error in deleting old file '%s' from TEE : %s", fileInfo.MerkleTree.Hash, err)
+			logger.Error("Fatal error in deleting old file '%s' from TEE : %s", fileInfo.MerkleTree.Hash, err)
 			newFileInfo.ClearFile()
 			hasError = true
 			break
@@ -201,7 +201,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		// Delete old file from fs
 		if err = fileInfo.DeleteSealedFileFromFs(fs); err != nil {
-			logger.Error("(Transfer) Fatal error in deleting old sealed file '%s' from Fs : %s", fileInfo.MerkleTree.Hash, err)
+			logger.Error("Fatal error in deleting old sealed file '%s' from Fs : %s", fileInfo.MerkleTree.Hash, err)
 			newFileInfo.ClearFile()
 			hasError = true
 			break
@@ -213,7 +213,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		// Confirm new file
 		if err = tee.Confirm(teeConfig, newFileInfo.MerkleTreeSealed.Hash); err != nil {
-			logger.Error("(Transfer) Tee file confirm failed, error is %s", err)
+			logger.Error("Tee file confirm failed, error is %s", err)
 			newFileInfo.ClearFile()
 			newFileInfo.ClearDb(db)
 			hasError = true
@@ -222,7 +222,7 @@ func transferLogic(oldTeeBaseUrl string, cfg *config.Configuration, fs filesyste
 
 		newFileInfo.ClearFile()
 		transferedFilesNum = transferedFilesNum + 1
-		logger.Debug("(Transfer) The %d file '%s' transfer successfully in %s", transferedFilesNum, newFileInfo.MerkleTree.Hash, time.Since(timeStart))
+		logger.Debug("The %d file '%s' transfer successfully in %s", transferedFilesNum, newFileInfo.MerkleTree.Hash, time.Since(timeStart))
 	}
 
 	// Return back to old tee base url

@@ -29,15 +29,16 @@ type TeeConfiguration struct {
 }
 
 type Configuration struct {
-	KarstPaths   utils.KarstPaths
-	BaseUrl      string
-	FilePartSize uint64
-	Backup       string
-	LogLevel     string
-	Crust        CrustConfiguration
-	Fastdfs      FastdfsConfiguration
-	Tee          TeeConfiguration
-	mutex        sync.Mutex
+	KarstPaths     utils.KarstPaths
+	BaseUrl        string
+	FilePartSize   uint64
+	Backup         string
+	LogLevel       string
+	Crust          CrustConfiguration
+	Fastdfs        FastdfsConfiguration
+	Tee            TeeConfiguration
+	mutex          sync.Mutex
+	IsProviderMode bool
 }
 
 var config *Configuration
@@ -98,6 +99,8 @@ func GetInstance() *Configuration {
 			config.Tee.WsBaseUrl = "ws://" + config.Tee.BaseUrl
 			config.Tee.Backup = config.Crust.Backup
 		}
+		// Run model
+		config.IsProviderMode = config.Tee.BaseUrl != "" && len(config.Fastdfs.TrackerAddrs) != 0
 	})
 
 	return config

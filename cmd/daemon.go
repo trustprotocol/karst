@@ -33,23 +33,8 @@ var daemonCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Cmd apis
-		var baseWsCommands = []*wsCmd{
-			splitWsCmd,
-			declareWsCmd,
-			obtainWsCmd,
-			finishWsCmd,
-		}
-
-		var providerWsCommands = []*wsCmd{
-			registerWsCmd,
-			listWsCmd,
-			deleteWsCmd,
-			transferWsCmd,
-		}
-
 		// Sever model
-		if cfg.Tee.BaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
+		if cfg.IsProviderMode {
 			// FS
 			// TODO: Support mulitable file system
 			fs, err := filesystem.OpenFastdfs(cfg)
