@@ -15,6 +15,6 @@ var versionCmd = &cobra.Command{
 	Short: "Karst version",
 	Long:  `Karst version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.Info("Karst 0.1.0")
+		logger.Info("Karst 0.2.0")
 	},
 }
