@@ -35,7 +35,6 @@ type StorageOrder struct {
 type FullStorageOrder struct {
 	Provider       string `json:"provider"`
 	Client         string `json:"client"`
-	Amount         uint64 `json:"amount"`
 	FileIdentifier string `json:"file_identifier"`
 	FileSize       uint64 `json:"file_size"`
 	Duration       uint64 `json:"duration"`
