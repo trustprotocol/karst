@@ -10,6 +10,7 @@ import (
 )
 
 func init() {
+	initCmd.Flags().StringP("config", "c", "", "init by using this configuration file")
 	rootCmd.AddCommand(initCmd)
 }
 
@@ -61,7 +62,15 @@ var initCmd = &cobra.Command{
 				os.Exit(-1)
 			}
 
-			config.WriteDefault(karstPaths.ConfigFilePath)
+			inputConfigFilePath, _ := cmd.Flags().GetString("config")
+			if inputConfigFilePath == "" {
+				config.WriteDefault(karstPaths.ConfigFilePath)
+			} else {
+				if err := utils.CpFile(inputConfigFilePath, karstPaths.ConfigFilePath); err != nil {
+					logger.Error("%s", err)
+				}
+			}
+
 			logger.Info("Initialize karst in '%s' successfully!", karstPaths.KarstPath)
 		}
 	},
