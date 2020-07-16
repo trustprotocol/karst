@@ -1,2 +1,5 @@
-FROM ubuntu:16.04
-ADD karst /usr/bin/
+FROM golang
+WORKDIR /karst
+COPY . .
+RUN ./install.sh
+CMD karst init $INIT_ARGS && karst daemon

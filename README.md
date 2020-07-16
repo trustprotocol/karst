@@ -331,20 +331,22 @@ Failed return example (not found):
 }
 ```
 
-## Build docker image
+## Docker
 
-### Compiler Environment
-  - ubuntu 16.04
-  - go version >= go1.13.4
-
-### Build
+### Install docker
 ```shell
-  go build
+sudo apt-get update
+curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
 ```
 
 ### Build image
 ```shell
-  sudo docker build -t karst:test .
+  sudo ./build_docker.sh
+```
+
+### Run
+```shell
+  sudo docker run -it --name test-container --network host crustio/karst:0.2.0
 ```
 
 ## Contribution
