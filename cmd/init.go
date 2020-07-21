@@ -44,21 +44,25 @@ var initCmd = &cobra.Command{
 
 			if err := os.MkdirAll(karstPaths.UnsealFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst unseal files directory: %s", err)
+				os.RemoveAll(karstPaths.KarstPath)
 				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.SealFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst seal files directory: %s", err)
+				os.RemoveAll(karstPaths.KarstPath)
 				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.TransferFilesPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst transfer files directory: %s", err)
+				os.RemoveAll(karstPaths.KarstPath)
 				os.Exit(-1)
 			}
 
 			if err := os.MkdirAll(karstPaths.DbPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst db directory: %s", err)
+				os.RemoveAll(karstPaths.KarstPath)
 				os.Exit(-1)
 			}
 
@@ -68,6 +72,8 @@ var initCmd = &cobra.Command{
 			} else {
 				if err := utils.CpFile(inputConfigFilePath, karstPaths.ConfigFilePath); err != nil {
 					logger.Error("%s", err)
+					os.RemoveAll(karstPaths.KarstPath)
+					os.Exit(-1)
 				}
 			}
 
