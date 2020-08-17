@@ -16,9 +16,18 @@ type CrustConfiguration struct {
 	Password string
 }
 
+type IpfsConfiguration struct {
+	BaseUrl string
+}
+
 type FastdfsConfiguration struct {
 	TrackerAddrs []string
 	MaxConns     int
+}
+
+type FsConfiguration struct {
+	Ipfs    IpfsConfiguration
+	Fastdfs FastdfsConfiguration
 }
 
 type TeeConfiguration struct {
@@ -35,7 +44,7 @@ type Configuration struct {
 	Backup       string
 	LogLevel     string
 	Crust        CrustConfiguration
-	Fastdfs      FastdfsConfiguration
+	Fs           FsConfiguration
 	Tee          TeeConfiguration
 	mutex        sync.Mutex
 }
@@ -72,6 +81,7 @@ func GetInstance() *Configuration {
 			os.Exit(-1)
 		}
 		config.Backup = viper.GetString("crust.backup")
+
 		// Log
 		config.LogLevel = viper.GetString("log_level")
 		if config.LogLevel == "debug" {
@@ -79,6 +89,7 @@ func GetInstance() *Configuration {
 		} else {
 			config.LogLevel = "info"
 		}
+
 		// Chain
 		config.Crust.BaseUrl = viper.GetString("crust.base_url")
 		config.Crust.Backup = viper.GetString("crust.backup")
@@ -88,9 +99,22 @@ func GetInstance() *Configuration {
 			logger.Error("Please give right chain configuration")
 			os.Exit(-1)
 		}
+
 		// FS
-		config.Fastdfs.TrackerAddrs = viper.GetStringSlice("fastdfs.tracker_addrs")
-		config.Fastdfs.MaxConns = viper.GetInt("fastdfs.max_conns")
+		config.Fs.Ipfs.BaseUrl = viper.GetString("filesystem.ipfs.base_url")
+		fastdfsAddress := viper.GetString("filesystem.fastdfs.tracker_addrs")
+		if fastdfsAddress != "" {
+			config.Fs.Fastdfs.TrackerAddrs = []string{fastdfsAddress}
+		} else {
+			config.Fs.Fastdfs.TrackerAddrs = []string{}
+		}
+
+		if config.Fs.Ipfs.BaseUrl != "" && len(config.Fs.Fastdfs.TrackerAddrs) != 0 {
+			logger.Error("You can only configure one file system")
+			os.Exit(-1)
+		}
+		config.Fs.Fastdfs.MaxConns = 100
+
 		// TEE
 		config.Tee.BaseUrl = viper.GetString("tee_base_url")
 		if config.Tee.BaseUrl != "" {
@@ -109,8 +133,8 @@ func (cfg *Configuration) Show() {
 	logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
 	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
 	logger.Info("Crust.Address = %s", cfg.Crust.Address)
-	logger.Info("Fastdfs.max_conns = %d", cfg.Fastdfs.MaxConns)
-	logger.Info("Fastdfs.tracker_addrs = %s", cfg.Fastdfs.TrackerAddrs)
+	logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
+	logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
 	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
@@ -136,6 +160,10 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 		return err
 	}
 	return nil
+}
+
+func (cfg *Configuration) IsServerMode() bool {
+	return cfg.Tee.BaseUrl != "" && (len(cfg.Fs.Fastdfs.TrackerAddrs) != 0 || cfg.Fs.Ipfs.BaseUrl != "")
 }
 
 func (cfg *Configuration) Lock() {
@@ -168,9 +196,11 @@ func WriteDefault(configFilePath string) {
 	viper.Set("crust.address", "")
 	viper.Set("crust.password", "")
 
+	// IPFS configuration
+	viper.Set("filesystem.ipfs.base_path", "")
+
 	// Fastdfs configuration
-	viper.Set("fastdfs.tracker_addrs", make([]string, 0))
-	viper.Set("fastdfs.max_conns", 100)
+	viper.Set("filesystem.fastdfs.tracker_addrs", "")
 
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {

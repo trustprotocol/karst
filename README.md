@@ -20,12 +20,16 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
     "base_url": "127.0.0.1:56666/api/v1",
     "password": "123456"
   },
-  "fastdfs": {
-    "max_conns": 100,
-    "tracker_addrs": ["172.16.3.15:22122"]
+  "file_system": {
+    "fastdfs": {
+      "tracker_addrs": "" # for provider example-> 127.0.0.1:22122, this parameter is mutually exclusive with ipfs.base_url
+    },
+    "ipfs": {
+      "base_url": "" # for provider example-> 127.0.0.1:5001, this parameter is mutually exclusive with fastdfs.tracker_addrs
+    }
   },
   "log_level": "debug",
-  "tee_base_url": "127.0.0.1:12222/api/v0"
+  "tee_base_url": "" # for provider example-> 127.0.0.1:12222/api/v0
 }
 ```
 
@@ -34,8 +38,8 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
 - 'crust.backup' is your backup for chain
 - 'crust.base_url' is crust api url for chain
 - 'crust.password' is password for chain
-- 'fastdfs.max_conns' is the maximum number of connections for fastdfs
-- 'fastdfs.tracker_addrs' is the addresses of trackers for fastdfs
+- 'file_system.fastdfs.max_conns' is the maximum number of connections for fastdfs
+- 'file_system.fastdfs.tracker_addrs' is the addresses of tracker for fastdfs
 - 'log_level' can be set as debug mode to show debug information
 - 'tee_base_url' is tee base url
 
