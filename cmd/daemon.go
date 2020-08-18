@@ -51,10 +51,9 @@ var daemonCmd = &cobra.Command{
 		// Sever model
 		if cfg.IsServerMode() {
 			// FS
-			// TODO: Support mulitable file system
-			fs, err := filesystem.OpenFastdfs(cfg)
+			fs, err := filesystem.GetFs(cfg)
 			if err != nil {
-				logger.Error("Fatal error in opening fastdfs: %s", err)
+				logger.Error("Fatal error in opening fs: %s", err)
 				os.Exit(-1)
 			}
 			defer fs.Close()
