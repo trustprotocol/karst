@@ -7,9 +7,11 @@ import (
 )
 
 type Ipfs struct {
+	sh *shell.Shell
 }
 
 func OpenIpfs(cfg *config.Configuration) (*Ipfs, error) {
-	shell.NewShell("localhost:5001")
-	return &Ipfs{}, nil
+	return &Ipfs{
+		sh: shell.NewShell(cfg.Fs.Ipfs.BaseUrl),
+	}, nil
 }

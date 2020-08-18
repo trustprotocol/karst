@@ -9,11 +9,24 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	IPFS_FLAG    string = "ipfs"
+	FASTDFS_FLAG string = "fastdfs"
+	NOFS_FLAG    string = ""
+)
+
 type CrustConfiguration struct {
 	BaseUrl  string
 	Backup   string
 	Address  string
 	Password string
+}
+
+type TeeConfiguration struct {
+	BaseUrl     string
+	Backup      string
+	WsBaseUrl   string
+	HttpBaseUrl string
 }
 
 type IpfsConfiguration struct {
@@ -26,15 +39,9 @@ type FastdfsConfiguration struct {
 }
 
 type FsConfiguration struct {
+	FsFlag  string
 	Ipfs    IpfsConfiguration
 	Fastdfs FastdfsConfiguration
-}
-
-type TeeConfiguration struct {
-	BaseUrl     string
-	Backup      string
-	WsBaseUrl   string
-	HttpBaseUrl string
 }
 
 type Configuration struct {
@@ -101,19 +108,25 @@ func GetInstance() *Configuration {
 		}
 
 		// FS
-		config.Fs.Ipfs.BaseUrl = viper.GetString("filesystem.ipfs.base_url")
 		fastdfsAddress := viper.GetString("filesystem.fastdfs.tracker_addrs")
-		if fastdfsAddress != "" {
-			config.Fs.Fastdfs.TrackerAddrs = []string{fastdfsAddress}
-		} else {
-			config.Fs.Fastdfs.TrackerAddrs = []string{}
-		}
+		ipfsBaseUrl := viper.GetString("filesystem.ipfs.base_url")
 
-		if config.Fs.Ipfs.BaseUrl != "" && len(config.Fs.Fastdfs.TrackerAddrs) != 0 {
+		if ipfsBaseUrl != "" && fastdfsAddress != "" {
 			logger.Error("You can only configure one file system")
 			os.Exit(-1)
+		} else if ipfsBaseUrl != "" {
+			config.Fs.FsFlag = IPFS_FLAG
+			config.Fs.Ipfs.BaseUrl = ipfsBaseUrl
+			config.Fs.Fastdfs.TrackerAddrs = []string{}
+			config.Fs.Fastdfs.MaxConns = 0
+		} else if fastdfsAddress != "" {
+			config.Fs.FsFlag = FASTDFS_FLAG
+			config.Fs.Fastdfs.TrackerAddrs = []string{fastdfsAddress}
+			config.Fs.Fastdfs.MaxConns = 100
+			config.Fs.Ipfs.BaseUrl = ""
+		} else {
+			config.Fs.FsFlag = NOFS_FLAG
 		}
-		config.Fs.Fastdfs.MaxConns = 100
 
 		// TEE
 		config.Tee.BaseUrl = viper.GetString("tee_base_url")
@@ -130,11 +143,20 @@ func GetInstance() *Configuration {
 func (cfg *Configuration) Show() {
 	logger.Info("KarstPath = %s", cfg.KarstPaths.KarstPath)
 	logger.Info("BaseUrl = %s", cfg.BaseUrl)
-	logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
+
+	if cfg.Tee.BaseUrl != "" {
+		logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
+	}
+
 	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
 	logger.Info("Crust.Address = %s", cfg.Crust.Address)
-	logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
-	logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
+
+	if cfg.Fs.FsFlag == IPFS_FLAG {
+		logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
+	} else if cfg.Fs.FsFlag == FASTDFS_FLAG {
+		logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
+	}
+
 	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
@@ -163,7 +185,7 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 }
 
 func (cfg *Configuration) IsServerMode() bool {
-	return cfg.Tee.BaseUrl != "" && (len(cfg.Fs.Fastdfs.TrackerAddrs) != 0 || cfg.Fs.Ipfs.BaseUrl != "")
+	return cfg.Tee.BaseUrl != "" && cfg.Fs.FsFlag != NOFS_FLAG
 }
 
 func (cfg *Configuration) Lock() {
