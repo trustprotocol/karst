@@ -23,7 +23,7 @@ type CrustConfiguration struct {
 	Password string
 }
 
-type TeeConfiguration struct {
+type SworkerConfiguration struct {
 	BaseUrl     string
 	Backup      string
 	WsBaseUrl   string
@@ -52,7 +52,7 @@ type Configuration struct {
 	Debug        bool
 	Crust        CrustConfiguration
 	Fs           FsConfiguration
-	Tee          TeeConfiguration
+	Sworker      SworkerConfiguration
 }
 
 var config *Configuration
@@ -126,12 +126,12 @@ func GetInstance() *Configuration {
 			config.Fs.FsFlag = NOFS_FLAG
 		}
 
-		// TEE
-		config.Tee.BaseUrl = viper.GetString("sworker.base_url")
-		if config.Tee.BaseUrl != "" {
-			config.Tee.HttpBaseUrl = "http://" + config.Tee.BaseUrl
-			config.Tee.WsBaseUrl = "ws://" + config.Tee.BaseUrl
-			config.Tee.Backup = config.Crust.Backup
+		// Sworker
+		config.Sworker.BaseUrl = viper.GetString("sworker.base_url")
+		if config.Sworker.BaseUrl != "" {
+			config.Sworker.HttpBaseUrl = "http://" + config.Sworker.BaseUrl
+			config.Sworker.WsBaseUrl = "ws://" + config.Sworker.BaseUrl
+			config.Sworker.Backup = config.Crust.Backup
 		}
 	})
 
@@ -142,8 +142,8 @@ func (cfg *Configuration) Show() {
 	logger.Info("KarstPath = %s", cfg.KarstPaths.KarstPath)
 	logger.Info("BaseUrl = %s", cfg.BaseUrl)
 
-	if cfg.Tee.BaseUrl != "" {
-		logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
+	if cfg.Sworker.BaseUrl != "" {
+		logger.Info("SworkerBaseUrl = %s", cfg.Sworker.BaseUrl)
 	}
 
 	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
@@ -162,27 +162,12 @@ func (cfg *Configuration) Show() {
 	}
 }
 
-func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
-	cfg.Tee.BaseUrl = baseUrl
-	cfg.Tee.HttpBaseUrl = "http://" + baseUrl
-	cfg.Tee.WsBaseUrl = "ws://" + baseUrl
-	viper.SetConfigFile(cfg.KarstPaths.ConfigFilePath)
-	viper.Set("tee_base_url", baseUrl)
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-	if err := viper.WriteConfigAs(cfg.KarstPaths.ConfigFilePath); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (cfg *Configuration) IsServerMode() bool {
-	return cfg.Tee.BaseUrl != "" && cfg.Fs.FsFlag != NOFS_FLAG
+	return cfg.Sworker.BaseUrl != "" && cfg.Fs.FsFlag != NOFS_FLAG
 }
 
-func NewTeeConfiguration(baseUrl string, backup string) *TeeConfiguration {
-	return &TeeConfiguration{
+func NewSworkerConfiguration(baseUrl string, backup string) *SworkerConfiguration {
+	return &SworkerConfiguration{
 		Backup:      backup,
 		BaseUrl:     baseUrl,
 		WsBaseUrl:   "ws://" + baseUrl,

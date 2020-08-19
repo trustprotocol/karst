@@ -6,7 +6,7 @@ import (
 	"karst/filesystem"
 	"karst/logger"
 	"karst/model"
-	"karst/tee"
+	"karst/sworker"
 	"karst/utils"
 	"os"
 	"path/filepath"
@@ -85,8 +85,8 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				continue
 			}
 
-			// Send merkle tree to TEE for sealing
-			merkleTreeSealed, sealedPath, err := tee.Seal(&cfg.Tee, fileInfo.OriginalPath, fileInfo.MerkleTree)
+			// Send merkle tree to sworker for sealing
+			merkleTreeSealed, sealedPath, err := sworker.Seal(&cfg.Sworker, fileInfo.OriginalPath, fileInfo.MerkleTree)
 			if err != nil {
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
@@ -110,9 +110,9 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			fileInfoBytes, _ := json.Marshal(fileInfo)
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
-			// Notificate TEE can detect
-			if err = tee.Confirm(&cfg.Tee, fileInfo.MerkleTreeSealed.Hash); err != nil {
-				logger.Error("Tee file confirm failed, error is %s", err)
+			// Notificate sworker can detect
+			if err = sworker.Confirm(&cfg.Sworker, fileInfo.MerkleTreeSealed.Hash); err != nil {
+				logger.Error("Sworker file confirm failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()
 				fileInfo.ClearDb(db)

@@ -167,7 +167,6 @@ Please make sure your contribution adhere to our coding guideliness:
 Merging pull requests once CI is successful:
 
 - A PR needs to be reviewed and approved by project maintainers;
-- PRs that break the external API must be tagged with [`breaksapi`](https://github.com/crustio/crust-tee/labels/breakapi);
 - No PR should be merged until **all reviews' comments** are addressed.
 
 ## License

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"karst/logger"
 	"karst/model"
-	"karst/tee"
+	"karst/sworker"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -62,7 +62,7 @@ var deleteWsCmd = &wsCmd{
 		}
 
 		// Clear file from db
-		if err = tee.Delete(&wsc.Cfg.Tee, fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = sworker.Delete(&wsc.Cfg.Sworker, fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
 				Info:   err.Error(),
