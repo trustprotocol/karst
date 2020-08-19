@@ -9,16 +9,17 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	IPFS_FLAG    string = "ipfs"
+	FASTDFS_FLAG string = "fastdfs"
+	NOFS_FLAG    string = ""
+)
+
 type CrustConfiguration struct {
 	BaseUrl  string
 	Backup   string
 	Address  string
 	Password string
-}
-
-type FastdfsConfiguration struct {
-	TrackerAddrs []string
-	MaxConns     int
 }
 
 type TeeConfiguration struct {
@@ -28,6 +29,21 @@ type TeeConfiguration struct {
 	HttpBaseUrl string
 }
 
+type IpfsConfiguration struct {
+	BaseUrl string
+}
+
+type FastdfsConfiguration struct {
+	TrackerAddrs []string
+	MaxConns     int
+}
+
+type FsConfiguration struct {
+	FsFlag  string
+	Ipfs    IpfsConfiguration
+	Fastdfs FastdfsConfiguration
+}
+
 type Configuration struct {
 	KarstPaths   utils.KarstPaths
 	BaseUrl      string
@@ -35,7 +51,7 @@ type Configuration struct {
 	Backup       string
 	LogLevel     string
 	Crust        CrustConfiguration
-	Fastdfs      FastdfsConfiguration
+	Fs           FsConfiguration
 	Tee          TeeConfiguration
 	mutex        sync.Mutex
 }
@@ -72,6 +88,7 @@ func GetInstance() *Configuration {
 			os.Exit(-1)
 		}
 		config.Backup = viper.GetString("crust.backup")
+
 		// Log
 		config.LogLevel = viper.GetString("log_level")
 		if config.LogLevel == "debug" {
@@ -79,6 +96,7 @@ func GetInstance() *Configuration {
 		} else {
 			config.LogLevel = "info"
 		}
+
 		// Chain
 		config.Crust.BaseUrl = viper.GetString("crust.base_url")
 		config.Crust.Backup = viper.GetString("crust.backup")
@@ -88,9 +106,28 @@ func GetInstance() *Configuration {
 			logger.Error("Please give right chain configuration")
 			os.Exit(-1)
 		}
+
 		// FS
-		config.Fastdfs.TrackerAddrs = viper.GetStringSlice("fastdfs.tracker_addrs")
-		config.Fastdfs.MaxConns = viper.GetInt("fastdfs.max_conns")
+		fastdfsAddress := viper.GetString("file_system.fastdfs.tracker_addrs")
+		ipfsBaseUrl := viper.GetString("file_system.ipfs.base_url")
+
+		if ipfsBaseUrl != "" && fastdfsAddress != "" {
+			logger.Error("You can only configure one file system")
+			os.Exit(-1)
+		} else if ipfsBaseUrl != "" {
+			config.Fs.FsFlag = IPFS_FLAG
+			config.Fs.Ipfs.BaseUrl = ipfsBaseUrl
+			config.Fs.Fastdfs.TrackerAddrs = []string{}
+			config.Fs.Fastdfs.MaxConns = 0
+		} else if fastdfsAddress != "" {
+			config.Fs.FsFlag = FASTDFS_FLAG
+			config.Fs.Fastdfs.TrackerAddrs = []string{fastdfsAddress}
+			config.Fs.Fastdfs.MaxConns = 100
+			config.Fs.Ipfs.BaseUrl = ""
+		} else {
+			config.Fs.FsFlag = NOFS_FLAG
+		}
+
 		// TEE
 		config.Tee.BaseUrl = viper.GetString("tee_base_url")
 		if config.Tee.BaseUrl != "" {
@@ -106,11 +143,20 @@ func GetInstance() *Configuration {
 func (cfg *Configuration) Show() {
 	logger.Info("KarstPath = %s", cfg.KarstPaths.KarstPath)
 	logger.Info("BaseUrl = %s", cfg.BaseUrl)
-	logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
+
+	if cfg.Tee.BaseUrl != "" {
+		logger.Info("TeeBaseUrl = %s", cfg.Tee.BaseUrl)
+	}
+
 	logger.Info("Crust.BaseUrl = %s", cfg.Crust.BaseUrl)
 	logger.Info("Crust.Address = %s", cfg.Crust.Address)
-	logger.Info("Fastdfs.max_conns = %d", cfg.Fastdfs.MaxConns)
-	logger.Info("Fastdfs.tracker_addrs = %s", cfg.Fastdfs.TrackerAddrs)
+
+	if cfg.Fs.FsFlag == IPFS_FLAG {
+		logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
+	} else if cfg.Fs.FsFlag == FASTDFS_FLAG {
+		logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
+	}
+
 	logger.Info("LogLevel = %s", cfg.LogLevel)
 }
 
@@ -136,6 +182,10 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 		return err
 	}
 	return nil
+}
+
+func (cfg *Configuration) IsServerMode() bool {
+	return cfg.Tee.BaseUrl != "" && cfg.Fs.FsFlag != NOFS_FLAG
 }
 
 func (cfg *Configuration) Lock() {
@@ -168,9 +218,11 @@ func WriteDefault(configFilePath string) {
 	viper.Set("crust.address", "")
 	viper.Set("crust.password", "")
 
+	// IPFS configuration
+	viper.Set("file_system.ipfs.base_url", "")
+
 	// Fastdfs configuration
-	viper.Set("fastdfs.tracker_addrs", make([]string, 0))
-	viper.Set("fastdfs.max_conns", 100)
+	viper.Set("file_system.fastdfs.tracker_addrs", "")
 
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {

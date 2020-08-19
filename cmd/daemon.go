@@ -49,12 +49,11 @@ var daemonCmd = &cobra.Command{
 		}
 
 		// Sever model
-		if cfg.Tee.BaseUrl != "" && len(cfg.Fastdfs.TrackerAddrs) != 0 {
+		if cfg.IsServerMode() {
 			// FS
-			// TODO: Support mulitable file system
-			fs, err := filesystem.OpenFastdfs(cfg)
+			fs, err := filesystem.GetFs(cfg)
 			if err != nil {
-				logger.Error("Fatal error in opening fastdfs: %s", err)
+				logger.Error("Fatal error in opening fs: %s", err)
 				os.Exit(-1)
 			}
 			defer fs.Close()
@@ -87,7 +86,6 @@ var daemonCmd = &cobra.Command{
 			if err := ws.StartServer(cfg, nil, db); err != nil {
 				logger.Error("%s", err)
 			}
-
 		}
 	},
 }

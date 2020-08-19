@@ -29,7 +29,7 @@ type unsealBackMessage struct {
 // TODO: change to wss
 func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
-	url := tee.WsBaseUrl + "/storage/seal"
+	url := tee.WsBaseUrl + "/api/v0/storage/seal"
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -82,7 +82,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 
 func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
 	// Connect to tee
-	url := tee.WsBaseUrl + "/storage/unseal"
+	url := tee.WsBaseUrl + "/api/v0/storage/unseal"
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -128,7 +128,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 
 func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	// Generate request
-	url := tee.HttpBaseUrl + "/storage/confirm"
+	url := tee.HttpBaseUrl + "/api/v0/storage/confirm"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -173,7 +173,7 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 
 func Delete(tee *config.TeeConfiguration, sealedHash string) error {
 	// Generate request
-	url := tee.HttpBaseUrl + "/storage/delete"
+	url := tee.HttpBaseUrl + "/api/v0/storage/delete"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}

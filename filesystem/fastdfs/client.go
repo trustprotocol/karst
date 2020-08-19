@@ -22,8 +22,8 @@ func NewClientWithConfig(cfg *config.Configuration) (*Client, error) {
 	client.trackerPools = make(map[string]*connPool)
 	client.storagePools = make(map[string]*connPool)
 
-	for _, addr := range client.config.Fastdfs.TrackerAddrs {
-		trackerPool, err := newConnPool(addr, client.config.Fastdfs.MaxConns)
+	for _, addr := range client.config.Fs.Fastdfs.TrackerAddrs {
+		trackerPool, err := newConnPool(addr, client.config.Fs.Fastdfs.MaxConns)
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +258,7 @@ func (this *Client) getStorageConn(storageInfo *storageInfo) (net.Conn, error) {
 		this.storagePoolLock.Unlock()
 		return storagePool.get()
 	}
-	storagePool, err := newConnPool(storageInfo.addr, this.config.Fastdfs.MaxConns)
+	storagePool, err := newConnPool(storageInfo.addr, this.config.Fs.Fastdfs.MaxConns)
 	if err != nil {
 		this.storagePoolLock.Unlock()
 		return nil, err
