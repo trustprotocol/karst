@@ -8,40 +8,64 @@ Karst is a storage adapter integrated with FS(file system) and sWorker(storage w
 go version >= go1.13.4
 ```
 
-# Config
-Configuration file will be created by running './karst init' in $KARST_PATH/config.json (Default location is $HOME/.karst/config.json). You can change it like:
-
+## Config
+Configuration file will be created by running './karst init' in $KARST_PATH/config.json (Default location is $HOME/.karst/config.json).
+### Configuration template
 ```json
 {
-  "base_url": "0.0.0.0:17000",
+  "port": 17000,
+  "debug": true,
   "crust": {
-    "address": "5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX",
-    "backup": "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}",
-    "base_url": "127.0.0.1:56666",
-    "password": "123456"
+    "address": "",
+    "backup": "",
+    "base_url": "",
+    "password": ""
+  },
+  "sworker": {
+    "base_url": ""
   },
   "file_system": {
     "fastdfs": {
-      "tracker_addrs": "" # for provider example-> 127.0.0.1:22122, this parameter is mutually exclusive with ipfs.base_url
+      "tracker_addrs": ""
     },
     "ipfs": {
-      "base_url": "" # for provider example-> 127.0.0.1:5001, this parameter is mutually exclusive with fastdfs.tracker_addrs
+      "base_url": ""
     }
-  },
-  "log_level": "debug",
-  "tee_base_url": "" # for provider example-> 127.0.0.1:12222
+  }
 }
 ```
 
-- 'base_url' is karst url
-- 'crust.address' is your chain account
-- 'crust.backup' is your backup for chain
-- 'crust.base_url' is crust api url for chain
-- 'crust.password' is password for chain
-- 'file_system.fastdfs.max_conns' is the maximum number of connections for fastdfs
-- 'file_system.fastdfs.tracker_addrs' is the addresses of tracker for fastdfs
-- 'log_level' can be set as debug mode to show debug information
-- 'tee_base_url' is tee base url
+### Configurations for client or provider
+- 'port' 
+  - Explanation: karst api port
+  - Example: 17000
+- 'debug'
+  - Explanation: used to enable debug mode
+  - Example: true
+- 'crust.address' 
+  - Explanation: chain account, for provider is controller account
+  - Example: 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
+- 'crust.backup'
+  - Explanation: backup for chain account
+  - Example: {\\"address\\":\\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\\",\\"encoded\\":\\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\\",\\"encoding\\":{\\"content\\":[\\"pkcs8\\",\\"sr25519\\"],\\"type\\":\\"xsalsa20-poly1305\\",\\"version\\":\\"2\\"},\\"meta\\":{\\"name\\":\\"Yang1\\",\\"tags\\":[],\\"whenCreated\\":1580628430860}}
+- 'crust.base_url'
+  - Explanation: crust api url for chain
+  - Example: 127.0.0.1:56666
+- 'crust.password'
+  - Explanation: password for chain account
+  - Example: 123456
+
+### Configurations for provider
+If you want to be a provider, please provide the correct sworker url and select a file system to fill in the relevant information
+- 'sworker.base_url'
+  - Explanation: sworker base url
+  - Example: 127.0.0.1:12222
+- 'file_system.fastdfs.tracker_addrs'
+  - Explanation: the addresses of fastdfs tracker for fastdfs, this parameter is mutually exclusive with 'file_system.ipfs.base_url'
+  - Example: 127.0.0.1:22122
+- 'file_system.ipfs.base_url'
+  - Explanation: the url of ipfs, this parameter is mutually exclusive with 'file_system.fastdfs.tracker_addrs'
+  - Example: 127.0.0.1:5001
 
 ## Install & Run
 

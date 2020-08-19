@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"karst/logger"
 	"karst/utils"
 	"os"
@@ -49,7 +50,7 @@ type Configuration struct {
 	BaseUrl      string
 	FilePartSize uint64
 	Backup       string
-	LogLevel     string
+	Debug        bool
 	Crust        CrustConfiguration
 	Fs           FsConfiguration
 	Tee          TeeConfiguration
@@ -82,19 +83,18 @@ func GetInstance() *Configuration {
 		// Base
 		config.KarstPaths = karstPaths
 		config.FilePartSize = 1 * (1 << 20) // 1 MB
-		config.BaseUrl = viper.GetString("base_url")
-		if config.BaseUrl == "" {
-			logger.Error("Need 'base_url' in config file")
+
+		karstPort := viper.GetInt("port")
+		if karstPort <= 0 {
+			logger.Error("Need right 'port' in config file")
 			os.Exit(-1)
 		}
-		config.Backup = viper.GetString("crust.backup")
+		config.BaseUrl = fmt.Sprintf("0.0.0.0:%d", karstPort)
 
 		// Log
-		config.LogLevel = viper.GetString("log_level")
-		if config.LogLevel == "debug" {
+		config.Debug = viper.GetBool("debug")
+		if config.Debug {
 			logger.OpenDebug()
-		} else {
-			config.LogLevel = "info"
 		}
 
 		// Chain
@@ -129,7 +129,7 @@ func GetInstance() *Configuration {
 		}
 
 		// TEE
-		config.Tee.BaseUrl = viper.GetString("tee_base_url")
+		config.Tee.BaseUrl = viper.GetString("sworker.base_url")
 		if config.Tee.BaseUrl != "" {
 			config.Tee.HttpBaseUrl = "http://" + config.Tee.BaseUrl
 			config.Tee.WsBaseUrl = "ws://" + config.Tee.BaseUrl
@@ -157,7 +157,11 @@ func (cfg *Configuration) Show() {
 		logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
 	}
 
-	logger.Info("LogLevel = %s", cfg.LogLevel)
+	if cfg.Debug {
+		logger.Info("Debug = true")
+	} else {
+		logger.Info("Debug = false")
+	}
 }
 
 func (cfg *Configuration) GetTeeConfiguration() *TeeConfiguration {
@@ -208,9 +212,8 @@ func NewTeeConfiguration(baseUrl string, backup string) *TeeConfiguration {
 func WriteDefault(configFilePath string) {
 	viper.SetConfigType("json")
 	// Base configuration
-	viper.Set("base_url", "0.0.0.0:17000")
-	viper.Set("tee_base_url", "")
-	viper.Set("log_level", "info")
+	viper.Set("port", 17000)
+	viper.Set("debug", true)
 
 	// Crust chain configuration
 	viper.Set("crust.base_url", "")
@@ -218,10 +221,11 @@ func WriteDefault(configFilePath string) {
 	viper.Set("crust.address", "")
 	viper.Set("crust.password", "")
 
-	// IPFS configuration
-	viper.Set("file_system.ipfs.base_url", "")
+	// Sworker configuration
+	viper.Set("sworker.base_url", "")
 
-	// Fastdfs configuration
+	// File system configuration
+	viper.Set("file_system.ipfs.base_url", "")
 	viper.Set("file_system.fastdfs.tracker_addrs", "")
 
 	// Write
