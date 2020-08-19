@@ -108,8 +108,8 @@ func GetInstance() *Configuration {
 		}
 
 		// FS
-		fastdfsAddress := viper.GetString("filesystem.fastdfs.tracker_addrs")
-		ipfsBaseUrl := viper.GetString("filesystem.ipfs.base_url")
+		fastdfsAddress := viper.GetString("file_system.fastdfs.tracker_addrs")
+		ipfsBaseUrl := viper.GetString("file_system.ipfs.base_url")
 
 		if ipfsBaseUrl != "" && fastdfsAddress != "" {
 			logger.Error("You can only configure one file system")
@@ -219,10 +219,10 @@ func WriteDefault(configFilePath string) {
 	viper.Set("crust.password", "")
 
 	// IPFS configuration
-	viper.Set("filesystem.ipfs.base_path", "")
+	viper.Set("file_system.ipfs.base_url", "")
 
 	// Fastdfs configuration
-	viper.Set("filesystem.fastdfs.tracker_addrs", "")
+	viper.Set("file_system.fastdfs.tracker_addrs", "")
 
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {
