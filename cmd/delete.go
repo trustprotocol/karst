@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"karst/config"
 	"karst/logger"
 	"karst/model"
 	"karst/tee"
@@ -63,7 +62,7 @@ var deleteWsCmd = &wsCmd{
 		}
 
 		// Clear file from db
-		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, wsc.Cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = tee.Delete(&wsc.Cfg.Tee, fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
 				Info:   err.Error(),

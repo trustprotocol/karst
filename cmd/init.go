@@ -54,12 +54,6 @@ var initCmd = &cobra.Command{
 				os.Exit(-1)
 			}
 
-			if err := os.MkdirAll(karstPaths.TransferFilesPath, os.ModePerm); err != nil {
-				logger.Error("Fatal error in creating karst transfer files directory: %s", err)
-				os.RemoveAll(karstPaths.KarstPath)
-				os.Exit(-1)
-			}
-
 			if err := os.MkdirAll(karstPaths.DbPath, os.ModePerm); err != nil {
 				logger.Error("Fatal error in creating karst db directory: %s", err)
 				os.RemoveAll(karstPaths.KarstPath)

@@ -49,12 +49,10 @@ type Configuration struct {
 	KarstPaths   utils.KarstPaths
 	BaseUrl      string
 	FilePartSize uint64
-	Backup       string
 	Debug        bool
 	Crust        CrustConfiguration
 	Fs           FsConfiguration
 	Tee          TeeConfiguration
-	mutex        sync.Mutex
 }
 
 var config *Configuration
@@ -90,7 +88,6 @@ func GetInstance() *Configuration {
 			os.Exit(-1)
 		}
 		config.BaseUrl = fmt.Sprintf("0.0.0.0:%d", karstPort)
-		config.Backup = viper.GetString("crust.backup")
 
 		// Log
 		config.Debug = viper.GetBool("debug")
@@ -165,15 +162,6 @@ func (cfg *Configuration) Show() {
 	}
 }
 
-func (cfg *Configuration) GetTeeConfiguration() *TeeConfiguration {
-	tee := &TeeConfiguration{}
-	tee.BaseUrl = cfg.Tee.BaseUrl
-	tee.Backup = cfg.Tee.Backup
-	tee.WsBaseUrl = cfg.Tee.WsBaseUrl
-	tee.HttpBaseUrl = cfg.Tee.HttpBaseUrl
-	return tee
-}
-
 func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 	cfg.Tee.BaseUrl = baseUrl
 	cfg.Tee.HttpBaseUrl = "http://" + baseUrl
@@ -191,14 +179,6 @@ func (cfg *Configuration) SetTeeConfiguration(baseUrl string) error {
 
 func (cfg *Configuration) IsServerMode() bool {
 	return cfg.Tee.BaseUrl != "" && cfg.Fs.FsFlag != NOFS_FLAG
-}
-
-func (cfg *Configuration) Lock() {
-	cfg.mutex.Lock()
-}
-
-func (cfg *Configuration) Unlock() {
-	cfg.mutex.Unlock()
 }
 
 func NewTeeConfiguration(baseUrl string, backup string) *TeeConfiguration {

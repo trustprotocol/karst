@@ -85,28 +85,23 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				continue
 			}
 
-			cfg.Lock()
-			teeConfig := cfg.GetTeeConfiguration()
 			// Send merkle tree to TEE for sealing
-			merkleTreeSealed, sealedPath, err := tee.Seal(teeConfig, fileInfo.OriginalPath, fileInfo.MerkleTree)
+			merkleTreeSealed, sealedPath, err := tee.Seal(&cfg.Tee, fileInfo.OriginalPath, fileInfo.MerkleTree)
 			if err != nil {
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearOriginalFile()
-				cfg.Unlock()
 				continue
 			} else {
 				fileInfo.MerkleTreeSealed = merkleTreeSealed
 				fileInfo.SealedPath = sealedPath
 			}
-			fileInfo.TeeBaseUrl = teeConfig.BaseUrl
 
 			// Save sealed file into fs
 			if err = fileInfo.PutSealedFileIntoFs(fs); err != nil {
 				logger.Error("Put whole file failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()
-				cfg.Unlock()
 				continue
 			}
 
@@ -116,19 +111,17 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
 			// Notificate TEE can detect
-			if err = tee.Confirm(teeConfig, fileInfo.MerkleTreeSealed.Hash); err != nil {
+			if err = tee.Confirm(&cfg.Tee, fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Tee file confirm failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()
 				fileInfo.ClearDb(db)
-				cfg.Unlock()
 				continue
 			}
 
 			// Delete original file from fs
 			_ = fileInfo.DeleteOriginalFileFromFs(fs)
 			fileInfo.ClearSealedFile()
-			cfg.Unlock()
 
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 

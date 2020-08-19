@@ -3,7 +3,6 @@ package ws
 import (
 	"fmt"
 	"karst/chain"
-	"karst/config"
 	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
@@ -208,7 +207,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Caching mechanism
 	// Unseal file
-	_, originalPath, err := tee.Unseal(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, cfg.Backup), fileInfo.SealedPath)
+	_, originalPath, err := tee.Unseal(&cfg.Tee, fileInfo.SealedPath)
 	if err != nil {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in unsealing file '%s' : %s", fileInfo.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)

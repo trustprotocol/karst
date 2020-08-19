@@ -14,13 +14,12 @@ import (
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type KarstPaths struct {
-	InitPath          string
-	KarstPath         string
-	ConfigFilePath    string
-	UnsealFilesPath   string
-	SealFilesPath     string
-	TransferFilesPath string
-	DbPath            string
+	InitPath        string
+	KarstPath       string
+	ConfigFilePath  string
+	UnsealFilesPath string
+	SealFilesPath   string
+	DbPath          string
 }
 
 func GetKarstPaths() KarstPaths {
@@ -34,7 +33,6 @@ func GetKarstPaths() KarstPaths {
 	karstPaths.ConfigFilePath = filepath.FromSlash(karstPaths.KarstPath + "/config.json")
 	karstPaths.UnsealFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/unseal_files")
 	karstPaths.SealFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/seal_files")
-	karstPaths.TransferFilesPath = filepath.FromSlash(karstPaths.KarstPath + "/transfer_files")
 	karstPaths.DbPath = filepath.FromSlash(karstPaths.KarstPath + "/db")
 
 	return karstPaths
