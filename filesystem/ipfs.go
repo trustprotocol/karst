@@ -15,7 +15,7 @@ type Ipfs struct {
 
 func OpenIpfs(cfg *config.Configuration) (*Ipfs, error) {
 	sh := shell.NewShell(cfg.Fs.Ipfs.BaseUrl)
-	if sh.IsUp() {
+	if !sh.IsUp() {
 		return nil, fmt.Errorf("Ipfs dosen't start")
 	}
 	return &Ipfs{sh: sh}, nil
