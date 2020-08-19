@@ -90,6 +90,7 @@ func GetInstance() *Configuration {
 			os.Exit(-1)
 		}
 		config.BaseUrl = fmt.Sprintf("0.0.0.0:%d", karstPort)
+		config.Backup = viper.GetString("crust.backup")
 
 		// Log
 		config.Debug = viper.GetBool("debug")
