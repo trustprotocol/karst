@@ -61,7 +61,7 @@ func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) 
 	body := req.BodyJSON(&regReq)
 	logger.Debug("Register request body: %s", body)
 
-	r, err := req.Post("http://"+cfg.Crust.BaseUrl+"/market/register", header, body)
+	r, err := req.Post("http://"+cfg.Crust.BaseUrl+"/api/v1/market/register", header, body)
 
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, erro
 	param := req.Param{
 		"address": pChainAddr,
 	}
-	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/market/provider", param)
+	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/provider", param)
 
 	if err != nil {
 		return "", err
@@ -124,7 +124,7 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 
 	body := req.BodyJSON(&sOrderReq)
 
-	r, err := req.Post("http://"+cfg.Crust.BaseUrl+"/market/sorder", header, body)
+	r, err := req.Post("http://"+cfg.Crust.BaseUrl+"/api/v1/market/sorder", header, body)
 	if err != nil {
 		return "", err
 	}
@@ -145,7 +145,7 @@ func GetStorageOrder(cfg *config.Configuration, orderId string) (FullStorageOrde
 	param := req.Param{
 		"orderId": orderId,
 	}
-	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/market/sorder", param)
+	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/sorder", param)
 	sOrder := FullStorageOrder{}
 
 	if err != nil {
