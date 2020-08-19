@@ -1,4 +1,4 @@
-package tee
+package sworker
 
 import (
 	"bytes"
@@ -27,9 +27,9 @@ type unsealBackMessage struct {
 }
 
 // TODO: change to wss
-func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
-	// Connect to tee
-	url := tee.WsBaseUrl + "/api/v0/storage/seal"
+func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
+	// Connect to sworker
+	url := sworker.WsBaseUrl + "/api/v0/storage/seal"
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -38,7 +38,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 
 	// Send file to seal
 	reqBody := map[string]interface{}{
-		"backup": tee.Backup,
+		"backup": sworker.Backup,
 		"body":   merkleTree,
 		"path":   path,
 	}
@@ -47,7 +47,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 	if err != nil {
 		return nil, "", err
 	} else {
-		logger.Debug("(TEE) Request body for sealing: %s", string(reqBodyBytes))
+		logger.Debug("Request body for sealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -60,7 +60,7 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 	if err != nil {
 		return nil, "", err
 	}
-	logger.Debug("(TEE) Recv: %s", message)
+	logger.Debug("Recv: %s", message)
 
 	var sealedMsg sealedMessage
 	err = json.Unmarshal([]byte(message), &sealedMsg)
@@ -80,9 +80,9 @@ func Seal(tee *config.TeeConfiguration, path string, merkleTree *merkletree.Merk
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
-	// Connect to tee
-	url := tee.WsBaseUrl + "/api/v0/storage/unseal"
+func Unseal(sworker *config.SworkerConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
+	// Connect to sworker
+	url := sworker.WsBaseUrl + "/api/v0/storage/unseal"
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, "", err
@@ -91,7 +91,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 
 	// Send file to unseal
 	reqBody := map[string]interface{}{
-		"backup": tee.Backup,
+		"backup": sworker.Backup,
 		"path":   path,
 	}
 
@@ -99,7 +99,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 	if err != nil {
 		return nil, "", err
 	} else {
-		logger.Debug("(TEE) Request body for unsealing: %s", string(reqBodyBytes))
+		logger.Debug("Request body for unsealing: %s", string(reqBodyBytes))
 	}
 
 	err = c.WriteMessage(websocket.TextMessage, reqBodyBytes)
@@ -112,7 +112,7 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 	if err != nil {
 		return nil, "", err
 	}
-	logger.Debug("(TEE) Recv: %s", message)
+	logger.Debug("Recv: %s", message)
 
 	var unsealBackMes unsealBackMessage
 	err = json.Unmarshal([]byte(message), &unsealBackMes)
@@ -126,9 +126,9 @@ func Unseal(tee *config.TeeConfiguration, path string) (*merkletree.MerkleTreeNo
 	return nil, unsealBackMes.Path, nil
 }
 
-func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
+func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
 	// Generate request
-	url := tee.HttpBaseUrl + "/api/v0/storage/confirm"
+	url := sworker.HttpBaseUrl + "/api/v0/storage/confirm"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -141,7 +141,7 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", tee.Backup)
+	req.Header.Set("backup", sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -167,13 +167,13 @@ func Confirm(tee *config.TeeConfiguration, sealedHash string) error {
 		return err
 	}
 
-	logger.Debug("(TEE) " + string(returnBody))
+	logger.Debug(string(returnBody))
 	return nil
 }
 
-func Delete(tee *config.TeeConfiguration, sealedHash string) error {
+func Delete(sworker *config.SworkerConfiguration, sealedHash string) error {
 	// Generate request
-	url := tee.HttpBaseUrl + "/api/v0/storage/delete"
+	url := sworker.HttpBaseUrl + "/api/v0/storage/delete"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -186,7 +186,7 @@ func Delete(tee *config.TeeConfiguration, sealedHash string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", tee.Backup)
+	req.Header.Set("backup", sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -212,6 +212,6 @@ func Delete(tee *config.TeeConfiguration, sealedHash string) error {
 		return err
 	}
 
-	logger.Debug("(TEE) " + string(returnBody))
+	logger.Debug(string(returnBody))
 	return nil
 }

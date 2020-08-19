@@ -20,7 +20,6 @@ const (
 type FileInfo struct {
 	MerkleTree       *merkletree.MerkleTreeNode `json:"merkle_tree"`
 	MerkleTreeSealed *merkletree.MerkleTreeNode `json:"merkle_tree_sealed"`
-	TeeBaseUrl       string                     `json:"tee_base_url"`
 	OriginalPath     string                     `json:"-"`
 	SealedPath       string                     `json:"-"`
 }

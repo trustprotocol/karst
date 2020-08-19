@@ -44,9 +44,7 @@ var daemonCmd = &cobra.Command{
 		var providerWsCommands = []*wsCmd{
 			registerWsCmd,
 			listWsCmd,
-			deleteWsCmd,
-			transferWsCmd,
-		}
+			deleteWsCmd}
 
 		// Sever model
 		if cfg.IsServerMode() {

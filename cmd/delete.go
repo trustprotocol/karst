@@ -2,10 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"karst/config"
 	"karst/logger"
 	"karst/model"
-	"karst/tee"
+	"karst/sworker"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -63,7 +62,7 @@ var deleteWsCmd = &wsCmd{
 		}
 
 		// Clear file from db
-		if err = tee.Delete(config.NewTeeConfiguration(fileInfo.TeeBaseUrl, wsc.Cfg.Backup), fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = sworker.Delete(&wsc.Cfg.Sworker, fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
 				Info:   err.Error(),

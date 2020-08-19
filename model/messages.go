@@ -88,12 +88,6 @@ type NodeDataMessage struct {
 	NodeIndex uint64 `json:"node_index"`
 }
 
-// -----------------------------TransferMessage-----------------------------
-type TransferMessage struct {
-	Backup  string `json:"backup"`
-	BaseUrl string `json:"base_url"`
-}
-
 func SendTextMessage(c *websocket.Conn, msg interface{}) {
 	msgBytes, _ := json.Marshal(msg)
 	err := c.WriteMessage(websocket.TextMessage, msgBytes)
