@@ -13,15 +13,13 @@ import (
 )
 
 type sealedMessage struct {
-	Status int
-	Body   string
-	Path   string
+	Body string
+	Path string
 }
 
 type unsealBackMessage struct {
-	Status int
-	Body   string
-	Path   string
+	Body string
+	Path string
 }
 
 func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
@@ -70,10 +68,6 @@ func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merklet
 	err = json.Unmarshal([]byte(returnBody), &sealedMsg)
 	if err != nil {
 		return nil, "", fmt.Errorf("Unmarshal seal result failed: %s", err)
-	}
-
-	if sealedMsg.Status != 200 {
-		return nil, "", fmt.Errorf("Seal failed, error code is %d", sealedMsg.Status)
 	}
 
 	var merkleTreeSealed merkletree.MerkleTreeNode
@@ -129,9 +123,6 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (*merkletree.Merk
 	err = json.Unmarshal([]byte(returnBody), &unsealBackMes)
 	if err != nil {
 		return nil, "", fmt.Errorf("Unmarshal unseal back message failed: %s", err)
-	}
-	if unsealBackMes.Status != 200 {
-		return nil, "", fmt.Errorf("Unseal failed: %s", unsealBackMes.Body)
 	}
 
 	return nil, unsealBackMes.Path, nil
