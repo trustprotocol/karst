@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.4 // indirect
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.4.0
 	github.com/imroc/req v0.3.0
 	github.com/ipfs/go-ipfs-api v0.1.0
 	github.com/spf13/cobra v1.0.0

@@ -207,7 +207,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Caching mechanism
 	// Unseal file
-	_, originalPath, err := sworker.Unseal(&cfg.Sworker, fileInfo.SealedPath)
+	originalPath, err := sworker.Unseal(&cfg.Sworker, fileInfo.SealedPath)
 	if err != nil {
 		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in unsealing file '%s' : %s", fileInfo.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
