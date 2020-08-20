@@ -17,11 +17,6 @@ type sealedMessage struct {
 	Path string
 }
 
-type unsealBackMessage struct {
-	Body string
-	Path string
-}
-
 func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Generate request
 	url := sworker.HttpBaseUrl + "/api/v0/storage/seal"
@@ -78,7 +73,7 @@ func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merklet
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func Unseal(sworker *config.SworkerConfiguration, path string) (*merkletree.MerkleTreeNode, string, error) {
+func Unseal(sworker *config.SworkerConfiguration, path string) (string, error) {
 	// Generate request
 	url := sworker.HttpBaseUrl + "/api/v0/storage/unseal"
 	reqBody := map[string]interface{}{
@@ -89,7 +84,7 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (*merkletree.Merk
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes))
 	if err != nil {
-		return nil, "", err
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -104,28 +99,22 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (*merkletree.Merk
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, "", err
+		return "", err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		returnBody, _ := ioutil.ReadAll(resp.Body)
-		return nil, "", fmt.Errorf("Request unseal failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
+		return "", fmt.Errorf("Request unseal failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
 	}
 
 	returnBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, "", err
+		return "", err
 	}
 
-	var unsealBackMes unsealBackMessage
-	err = json.Unmarshal([]byte(returnBody), &unsealBackMes)
-	if err != nil {
-		return nil, "", fmt.Errorf("Unmarshal unseal back message failed: %s", err)
-	}
-
-	return nil, unsealBackMes.Path, nil
+	return string(returnBody), nil
 }
 
 func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
