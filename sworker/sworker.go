@@ -17,9 +17,39 @@ type sealedMessage struct {
 	Path string
 }
 
-func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
+func httpRetryHandle(client *http.Client, req *http.Request, cfg *config.Configuration) ([]byte, error) {
+	tryTimes := 0
+
+	for {
+		tryTimes++
+		resp, err := client.Do(req)
+		if err != nil {
+			if tryTimes > cfg.RetryTimes {
+				return nil, err
+			}
+		} else {
+			if resp.StatusCode == 200 {
+				returnBody, err := ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				return returnBody, err
+			} else if resp.StatusCode == 503 {
+				resp.Body.Close()
+				logger.Debug("SWorker is updating, will still wait for %d s", cfg.RetryInterval.Milliseconds()*(int64)(cfg.RetryTimes*180-tryTimes))
+				if tryTimes > cfg.RetryTimes*180 {
+					return nil, fmt.Errorf("SWorker updates too slow")
+				}
+			} else {
+				resp.Body.Close()
+				return nil, fmt.Errorf("Error code is: %d", resp.StatusCode)
+			}
+		}
+		time.Sleep(cfg.RetryInterval)
+	}
+}
+
+func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleTreeNode) (*merkletree.MerkleTreeNode, string, error) {
 	// Generate request
-	url := sworker.HttpBaseUrl + "/api/v0/storage/seal"
+	url := cfg.Sworker.HttpBaseUrl + "/api/v0/storage/seal"
 	reqBody := map[string]interface{}{
 		"body": merkleTree,
 		"path": path,
@@ -33,7 +63,7 @@ func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merklet
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", sworker.Backup)
+	req.Header.Set("backup", cfg.Sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -42,19 +72,8 @@ func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merklet
 			DisableKeepAlives: true,
 		},
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, "", err
-	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		returnBody, _ := ioutil.ReadAll(resp.Body)
-		return nil, "", fmt.Errorf("Request seal failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
-	}
-
-	returnBody, err := ioutil.ReadAll(resp.Body)
+	returnBody, err := httpRetryHandle(client, req, cfg)
 	if err != nil {
 		return nil, "", err
 	}
@@ -73,9 +92,9 @@ func Seal(sworker *config.SworkerConfiguration, path string, merkleTree *merklet
 	return &merkleTreeSealed, sealedMsg.Path, nil
 }
 
-func Unseal(sworker *config.SworkerConfiguration, path string) (string, error) {
+func Unseal(cfg *config.Configuration, path string) (string, error) {
 	// Generate request
-	url := sworker.HttpBaseUrl + "/api/v0/storage/unseal"
+	url := cfg.Sworker.HttpBaseUrl + "/api/v0/storage/unseal"
 	reqBody := map[string]interface{}{
 		"path": path,
 	}
@@ -88,7 +107,7 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", sworker.Backup)
+	req.Header.Set("backup", cfg.Sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -97,19 +116,8 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (string, error) {
 			DisableKeepAlives: true,
 		},
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		returnBody, _ := ioutil.ReadAll(resp.Body)
-		return "", fmt.Errorf("Request unseal failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
-	}
-
-	returnBody, err := ioutil.ReadAll(resp.Body)
+	returnBody, err := httpRetryHandle(client, req, cfg)
 	if err != nil {
 		return "", err
 	}
@@ -117,9 +125,9 @@ func Unseal(sworker *config.SworkerConfiguration, path string) (string, error) {
 	return string(returnBody), nil
 }
 
-func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
+func Confirm(cfg *config.Configuration, sealedHash string) error {
 	// Generate request
-	url := sworker.HttpBaseUrl + "/api/v0/storage/confirm"
+	url := cfg.Sworker.HttpBaseUrl + "/api/v0/storage/confirm"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -132,7 +140,7 @@ func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", sworker.Backup)
+	req.Header.Set("backup", cfg.Sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -141,19 +149,8 @@ func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
 			DisableKeepAlives: true,
 		},
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		returnBody, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Request confirm failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
-	}
-
-	returnBody, err := ioutil.ReadAll(resp.Body)
+	returnBody, err := httpRetryHandle(client, req, cfg)
 	if err != nil {
 		return err
 	}
@@ -162,9 +159,9 @@ func Confirm(sworker *config.SworkerConfiguration, sealedHash string) error {
 	return nil
 }
 
-func Delete(sworker *config.SworkerConfiguration, sealedHash string) error {
+func Delete(cfg *config.Configuration, sealedHash string) error {
 	// Generate request
-	url := sworker.HttpBaseUrl + "/api/v0/storage/delete"
+	url := cfg.Sworker.HttpBaseUrl + "/api/v0/storage/delete"
 	reqBody := map[string]interface{}{
 		"hash": sealedHash,
 	}
@@ -177,7 +174,7 @@ func Delete(sworker *config.SworkerConfiguration, sealedHash string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("backup", sworker.Backup)
+	req.Header.Set("backup", cfg.Sworker.Backup)
 
 	// Request
 	client := &http.Client{
@@ -186,19 +183,8 @@ func Delete(sworker *config.SworkerConfiguration, sealedHash string) error {
 			DisableKeepAlives: true,
 		},
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		returnBody, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Request delete failed, error is: %s, error code is: %d", string(returnBody), resp.StatusCode)
-	}
-
-	returnBody, err := ioutil.ReadAll(resp.Body)
+	returnBody, err := httpRetryHandle(client, req, cfg)
 	if err != nil {
 		return err
 	}
