@@ -86,7 +86,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			}
 
 			// Send merkle tree to sworker for sealing
-			merkleTreeSealed, sealedPath, err := sworker.Seal(&cfg.Sworker, fileInfo.OriginalPath, fileInfo.MerkleTree)
+			merkleTreeSealed, sealedPath, err := sworker.Seal(cfg, fileInfo.OriginalPath, fileInfo.MerkleTree)
 			if err != nil {
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
@@ -111,7 +111,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			logger.Debug("File info is %s", string(fileInfoBytes))
 
 			// Notificate sworker can detect
-			if err = sworker.Confirm(&cfg.Sworker, fileInfo.MerkleTreeSealed.Hash); err != nil {
+			if err = sworker.Confirm(cfg, fileInfo.MerkleTreeSealed.Hash); err != nil {
 				logger.Error("Sworker file confirm failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()

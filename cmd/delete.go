@@ -62,7 +62,7 @@ var deleteWsCmd = &wsCmd{
 		}
 
 		// Clear file from db
-		if err = sworker.Delete(&wsc.Cfg.Sworker, fileInfo.MerkleTreeSealed.Hash); err != nil {
+		if err = sworker.Delete(wsc.Cfg, fileInfo.MerkleTreeSealed.Hash); err != nil {
 			logger.Error("%s", err)
 			return deleteReturnMessage{
 				Info:   err.Error(),

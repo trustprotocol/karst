@@ -6,6 +6,7 @@ import (
 	"karst/utils"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -46,13 +47,15 @@ type FsConfiguration struct {
 }
 
 type Configuration struct {
-	KarstPaths   utils.KarstPaths
-	BaseUrl      string
-	FilePartSize uint64
-	Debug        bool
-	Crust        CrustConfiguration
-	Fs           FsConfiguration
-	Sworker      SworkerConfiguration
+	KarstPaths    utils.KarstPaths
+	BaseUrl       string
+	FilePartSize  uint64
+	RetryTimes    int
+	RetryInterval time.Duration
+	Debug         bool
+	Crust         CrustConfiguration
+	Fs            FsConfiguration
+	Sworker       SworkerConfiguration
 }
 
 var config *Configuration
@@ -80,7 +83,9 @@ func GetInstance() *Configuration {
 		config = &Configuration{}
 		// Base
 		config.KarstPaths = karstPaths
-		config.FilePartSize = 1 * (1 << 20) // 1 MB
+		config.FilePartSize = 1 * (1 << 20)    // 1 MB
+		config.RetryInterval = 6 * time.Second // 10s
+		config.RetryTimes = 3
 
 		karstPort := viper.GetInt("port")
 		if karstPort <= 0 {
