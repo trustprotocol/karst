@@ -83,8 +83,8 @@ func GetInstance() *Configuration {
 		config = &Configuration{}
 		// Base
 		config.KarstPaths = karstPaths
-		config.FilePartSize = 1 * (1 << 20)         // 1 MB
-		config.RetryInterval = 6 * time.Microsecond // 10s
+		config.FilePartSize = 1 * (1 << 20)    // 1 MB
+		config.RetryInterval = 6 * time.Second // 10s
 		config.RetryTimes = 3
 
 		karstPort := viper.GetInt("port")
