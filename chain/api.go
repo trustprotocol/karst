@@ -175,8 +175,7 @@ func IsReady(cfg *config.Configuration) bool {
 		return false
 	}
 
-	if r.Response().StatusCode == 200 {
-		logger.Error("Get chain system health error, error code is %d", r.Response().StatusCode)
+	if r.Response().StatusCode != 200 {
 		return false
 	}
 
