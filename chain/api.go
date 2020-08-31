@@ -10,29 +10,29 @@ import (
 	"github.com/imroc/req"
 )
 
-type RegisterRequest struct {
+type registerRequest struct {
 	AddressInfo  string `json:"addressInfo"`
 	StoragePrice uint64 `json:"storagePrice"`
 	Backup       string `json:"backup"`
 }
 
-type Provider struct {
+type provider struct {
 	Address string `json:"address"`
 }
 
-type SOrderRequest struct {
+type sOrderRequest struct {
 	SOrder string `json:"sorder"`
 	Backup string `json:"backup"`
 }
 
-type StorageOrder struct {
+type storageOrder struct {
 	Provider       string `json:"provider"`
 	FileIdentifier string `json:"fileIdentifier"`
 	FileSize       uint64 `json:"fileSize"`
 	Duration       uint64 `json:"duration"`
 }
 
-type FullStorageOrder struct {
+type fullStorageOrder struct {
 	Provider       string `json:"provider"`
 	Client         string `json:"client"`
 	FileIdentifier string `json:"file_identifier"`
@@ -43,8 +43,14 @@ type FullStorageOrder struct {
 	OrderStatus    string `json:"order_status"`
 }
 
-type SOrderResponse struct {
+type sOrderResponse struct {
 	OrderId string `json:"order_id"`
+}
+
+type systemHealth struct {
+	Peers           uint64 `json:"peers"`
+	IsSyncing       bool   `json:"isSyncing"`
+	ShouldHavePeers bool   `json:"shouldHavePeers"`
 }
 
 func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) error {
@@ -52,7 +58,7 @@ func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) 
 		"password": cfg.Crust.Password,
 	}
 
-	regReq := RegisterRequest{
+	regReq := registerRequest{
 		AddressInfo:  karstAddr,
 		StoragePrice: storagePrice,
 		Backup:       cfg.Crust.Backup,
@@ -91,7 +97,7 @@ func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, erro
 	}
 	logger.Debug("Get provider address response: %s", r)
 
-	provider := Provider{}
+	provider := provider{}
 	if err = r.ToJSON(&provider); err != nil {
 		return "", err
 	}
@@ -104,7 +110,7 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 		"password": cfg.Crust.Password,
 	}
 
-	sOrder := StorageOrder{
+	sOrder := storageOrder{
 		Provider:       provider,
 		FileIdentifier: fId,
 		FileSize:       fSize,
@@ -117,7 +123,7 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 		return "", err
 	}
 
-	sOrderReq := SOrderRequest{
+	sOrderReq := sOrderRequest{
 		SOrder: string(sOrderStr),
 		Backup: cfg.Crust.Backup,
 	}
@@ -134,19 +140,19 @@ func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint
 	}
 	logger.Debug("Response from sorder: %s", r)
 
-	sOrderRes := SOrderResponse{}
+	sOrderRes := sOrderResponse{}
 	if err = r.ToJSON(&sOrderRes); err != nil {
 		return "", err
 	}
 	return sOrderRes.OrderId, nil
 }
 
-func GetStorageOrder(cfg *config.Configuration, orderId string) (FullStorageOrder, error) {
+func GetStorageOrder(cfg *config.Configuration, orderId string) (fullStorageOrder, error) {
 	param := req.Param{
 		"orderId": orderId,
 	}
 	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/sorder", param)
-	sOrder := FullStorageOrder{}
+	sOrder := fullStorageOrder{}
 
 	if err != nil {
 		return sOrder, err
@@ -161,4 +167,29 @@ func GetStorageOrder(cfg *config.Configuration, orderId string) (FullStorageOrde
 	}
 
 	return sOrder, errors.New("Error from crust api")
+}
+
+func IsReady(cfg *config.Configuration) bool {
+	r, err := req.Get("http://" + cfg.Crust.BaseUrl + "/api/v1/system/health")
+	if err != nil {
+		return false
+	}
+
+	if r.Response().StatusCode != 200 {
+		return false
+	}
+
+	sh := systemHealth{
+		Peers:           0,
+		IsSyncing:       true,
+		ShouldHavePeers: false,
+	}
+
+	err = r.ToJSON(&sh)
+	if err != nil {
+		logger.Error("%s", err)
+		return false
+	}
+
+	return !sh.IsSyncing
 }
