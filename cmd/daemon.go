@@ -33,7 +33,7 @@ var daemonCmd = &cobra.Command{
 				break
 			}
 			logger.Debug("Wait for the chain to start or synchronize to the latest block")
-			time.Sleep(6 * time.Millisecond)
+			time.Sleep(6 * time.Second)
 		}
 
 		// DB
