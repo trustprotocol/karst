@@ -67,7 +67,7 @@ func Seal(cfg *config.Configuration, path string, merkleTree *merkletree.MerkleT
 
 	// Request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 1000 * time.Second,
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
@@ -111,7 +111,7 @@ func Unseal(cfg *config.Configuration, path string) (string, error) {
 
 	// Request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 1000 * time.Second,
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
@@ -144,7 +144,7 @@ func Confirm(cfg *config.Configuration, sealedHash string) error {
 
 	// Request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 1000 * time.Second,
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
@@ -178,7 +178,7 @@ func Delete(cfg *config.Configuration, sealedHash string) error {
 
 	// Request
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 1000 * time.Second,
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
 		},
