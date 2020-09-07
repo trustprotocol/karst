@@ -88,7 +88,7 @@ var finishWsCmd = &wsCmd{
 }
 
 func notifyProviderFinish(mt *merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) finishReturnMessage {
-	karstFileFinishAddr := "ws://127.0.0.1/api/v0/file/finish"
+	karstFileFinishAddr := "ws://127.0.0.1:17000/api/v0/file/finish"
 	logger.Debug("Get file finish address '%s' of '%s' success.", karstFileFinishAddr, provider)
 
 	// Request provider to seal file and give store proof
