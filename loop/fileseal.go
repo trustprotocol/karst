@@ -54,13 +54,6 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				MerkleTree: job.MerkleTree,
 			}
 
-			// Check if the file has been stored locally
-			if ok, _ := db.Has([]byte(model.FileFlagInDb+job.MerkleTree.Hash), nil); ok {
-				logger.Info("The file '%s' has been stored already", job.MerkleTree.Hash)
-				_ = fileInfo.DeleteOriginalFileFromFs(fs)
-				continue
-			}
-
 			// Create file directory
 			originalPath := filepath.FromSlash(cfg.KarstPaths.SealFilesPath + "/" + job.MerkleTree.Hash)
 			if utils.IsDirOrFileExist(originalPath) {
@@ -119,8 +112,6 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				continue
 			}
 
-			// Delete original file from fs
-			_ = fileInfo.DeleteOriginalFileFromFs(fs)
 			fileInfo.ClearSealedFile()
 
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
