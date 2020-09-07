@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
@@ -89,16 +88,7 @@ var finishWsCmd = &wsCmd{
 }
 
 func notifyProviderFinish(mt *merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) finishReturnMessage {
-	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
-	if err != nil {
-		return finishReturnMessage{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
-			Status: 400,
-		}
-	}
-
-	karstFileFinishAddr := karstBaseAddr + "/api/v0/file/finish"
+	karstFileFinishAddr := "ws://127.0.0.1/api/v0/file/finish"
 	logger.Debug("Get file finish address '%s' of '%s' success.", karstFileFinishAddr, provider)
 
 	// Request provider to seal file and give store proof

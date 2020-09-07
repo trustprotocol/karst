@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/model"
@@ -77,16 +76,7 @@ var obtainWsCmd = &wsCmd{
 }
 
 func requestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
-	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
-	if err != nil {
-		return obtainReturnMessage{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
-			Status: 400,
-		}
-	}
-
-	karstFileUnsealAddr := karstBaseAddr + "/api/v0/file/unseal"
+	karstFileUnsealAddr := "ws://127.0.0.1:17000/api/v0/file/unseal"
 	logger.Debug("Get file unseal address '%s' of '%s' success.", karstFileUnsealAddr, provider)
 
 	// Request provider to unseal file and return stored information

@@ -187,17 +187,17 @@ func WriteDefault(configFilePath string) {
 	viper.Set("debug", true)
 
 	// Crust chain configuration
-	viper.Set("crust.base_url", "")
-	viper.Set("crust.backup", "")
-	viper.Set("crust.address", "")
-	viper.Set("crust.password", "")
+	viper.Set("crust.base_url", "127.0.0.1:56666")
+	viper.Set("crust.backup", "{\"address\":\"5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX\",\"encoded\":\"0xc81537c9442bd1d3f4985531293d88f6d2a960969a88b1cf8413e7c9ec1d5f4955adf91d2d687d8493b70ef457532d505b9cee7a3d2b726a554242b75fb9bec7d4beab74da4bf65260e1d6f7a6b44af4505bf35aaae4cf95b1059ba0f03f1d63c5b7c3ccbacd6bd80577de71f35d0c4976b6e43fe0e1583530e773dfab3ab46c92ce3fa2168673ba52678407a3ef619b5e14155706d43bd329a5e72d36\",\"encoding\":{\"content\":[\"pkcs8\",\"sr25519\"],\"type\":\"xsalsa20-poly1305\",\"version\":\"2\"},\"meta\":{\"name\":\"Yang1\",\"tags\":[],\"whenCreated\":1580628430860}}")
+	viper.Set("crust.address", "5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX")
+	viper.Set("crust.password", "123456")
 
 	// Sworker configuration
-	viper.Set("sworker.base_url", "")
+	viper.Set("sworker.base_url", "127.0.0.1:12222")
 
 	// File system configuration
 	viper.Set("file_system.ipfs.base_url", "")
-	viper.Set("file_system.fastdfs.tracker_addrs", "")
+	viper.Set("file_system.fastdfs.tracker_addrs", "127.0.0.1:22122")
 
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {

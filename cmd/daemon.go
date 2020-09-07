@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"karst/chain"
 	"karst/config"
 	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
 	"karst/ws"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -27,15 +25,6 @@ var daemonCmd = &cobra.Command{
 		cfg := config.GetInstance()
 		cfg.Show()
 
-		// Waiting for chain
-		for {
-			if chain.IsReady(cfg) {
-				break
-			}
-			logger.Debug("Wait for the chain to start or synchronize to the latest block")
-			time.Sleep(6 * time.Second)
-		}
-
 		// DB
 		db, err := leveldb.OpenFile(cfg.KarstPaths.DbPath, nil)
 		if err != nil {
@@ -53,7 +42,6 @@ var daemonCmd = &cobra.Command{
 		}
 
 		var providerWsCommands = []*wsCmd{
-			registerWsCmd,
 			listWsCmd,
 			deleteWsCmd}
 

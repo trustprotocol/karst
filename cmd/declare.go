@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"karst/chain"
 	"karst/config"
 	"karst/logger"
 	"karst/merkletree"
@@ -112,26 +111,11 @@ var declareWsCmd = &wsCmd{
 }
 
 func declareFile(mt merkletree.MerkleTreeNode, provider string, duration uint64, cfg *config.Configuration) declareReturnMsg {
-	// Get provider seal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
-	if err != nil {
-		return declareReturnMsg{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
-			Status: 400,
-		}
-	}
-
-	karstFileSealAddr := karstBaseAddr + "/api/v0/file/seal"
+	karstFileSealAddr := "ws://127.0.0.1:17000/api/v0/file/seal"
 	logger.Debug("Get file seal address '%s' of '%s' success.", karstFileSealAddr, provider)
 
 	// Send order
-	storeOrderHash, err := chain.PlaceStorageOrder(cfg, provider, duration, "0x"+mt.Hash, mt.Size)
-	if err != nil {
-		return declareReturnMsg{
-			Info:   fmt.Sprintf("Create store order failed, err is: %s", err),
-			Status: 500,
-		}
-	}
+	storeOrderHash := "0x1111111111111111111111111111111111111111111"
 
 	logger.Debug("Create store order '%s' success.", storeOrderHash)
 

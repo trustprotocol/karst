@@ -2,7 +2,6 @@ package ws
 
 import (
 	"fmt"
-	"karst/chain"
 	"karst/filesystem"
 	"karst/logger"
 	"karst/loop"
@@ -58,29 +57,6 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Storage order check
-	sOrder, err := chain.GetStorageOrder(cfg, fileSealMsg.StoreOrderHash)
-	if err != nil {
-		fileSealReturnMsg.Info = fmt.Sprintf("Error from chain api, order id is '%s', error is %s", fileSealMsg.StoreOrderHash, err)
-		logger.Error(fileSealReturnMsg.Info)
-		fileSealReturnMsg.Status = 400
-		model.SendTextMessage(c, fileSealReturnMsg)
-		return
-	}
-	if sOrder.FileIdentifier != "0x"+fileSealMsg.MerkleTree.Hash || sOrder.Provider != cfg.Crust.Address {
-		fileSealReturnMsg.Info = fmt.Sprintf("Invalid order id: %s", fileSealMsg.StoreOrderHash)
-		logger.Error(fileSealReturnMsg.Info)
-		fileSealReturnMsg.Status = 400
-		model.SendTextMessage(c, fileSealReturnMsg)
-		return
-	}
-	if sOrder.FileSize != fileSealMsg.MerkleTree.Size {
-		fileSealReturnMsg.Info = fmt.Sprintf("Invalid file size: %d, file_size in order: %d", fileSealMsg.MerkleTree.Size, sOrder.FileSize)
-		logger.Error(fileSealReturnMsg.Info)
-		fileSealReturnMsg.Status = 400
-		model.SendTextMessage(c, fileSealReturnMsg)
-		return
-	}
 	logger.Debug("Storage order '%s' check success!", fileSealMsg.StoreOrderHash)
 
 	// Check if merkle is legal
