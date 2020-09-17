@@ -72,7 +72,7 @@ var deleteWsCmd = &wsCmd{
 			var deletedNum uint64 = 0
 			var freeSize uint64 = 0
 			for _, fileStatus := range fileStatusList {
-				if _, ok := fileMap[fileStatus.Hash]; ok {
+				if _, ok := fileMap["0x"+fileStatus.Hash]; ok {
 					continue
 				}
 
