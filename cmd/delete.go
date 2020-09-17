@@ -69,7 +69,8 @@ var deleteWsCmd = &wsCmd{
 				}
 			}
 
-			deletedNum := 0
+			var deletedNum uint64 = 0
+			var freeSize uint64 = 0
 			for _, fileStatus := range fileStatusList {
 				if _, ok := fileMap[fileStatus.Hash]; ok {
 					continue
@@ -85,10 +86,11 @@ var deleteWsCmd = &wsCmd{
 				}
 
 				deletedNum++
+				freeSize = freeSize + fileStatus.SealedSize
 			}
 
 			deleteReturnMsg := deleteReturnMessage{
-				Info:   fmt.Sprintf("Delete '%d' files successfully in %s !", deletedNum, time.Since(timeStart)),
+				Info:   fmt.Sprintf("Delete '%d' files and free '%d' space successfully in %s !", deletedNum, freeSize, time.Since(timeStart)),
 				Status: 200,
 			}
 			logger.Info(deleteReturnMsg.Info)
