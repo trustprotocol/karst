@@ -17,7 +17,8 @@ type registerRequest struct {
 }
 
 type provider struct {
-	Address string `json:"address"`
+	Address string              `json:"address"`
+	FileMap map[string][]string `json:"file_map"`
 }
 
 type sOrderRequest struct {
@@ -95,7 +96,7 @@ func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, erro
 	if r.Response().StatusCode != 200 {
 		return "", fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
 	}
-	logger.Debug("Get provider address response: %s", r)
+	logger.Debug("Get provider response: %s", r)
 
 	provider := provider{}
 	if err = r.ToJSON(&provider); err != nil {
@@ -103,6 +104,29 @@ func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, erro
 	}
 
 	return provider.Address, nil
+}
+
+func GetProviderFileMap(cfg *config.Configuration, pChainAddr string) (map[string][]string, error) {
+	param := req.Param{
+		"address": pChainAddr,
+	}
+	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/provider", param)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Response().StatusCode != 200 {
+		return nil, fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
+	}
+	logger.Debug("Get provider response: %s", r)
+
+	provider := provider{}
+	if err = r.ToJSON(&provider); err != nil {
+		return nil, err
+	}
+
+	return provider.FileMap, nil
 }
 
 func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint64, fId string, fSize uint64) (string, error) {

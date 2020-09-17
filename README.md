@@ -103,7 +103,10 @@ For provider
 ```shell
   karst list
 ```
-
+- Automatically clear files that are not in the order list
+```shell
+  karst delete
+```
 - Delete your stored files
 ```shell
   karst delete e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef

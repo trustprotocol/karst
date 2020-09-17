@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"karst/chain"
 	"karst/logger"
 	"karst/model"
 	"karst/sworker"
@@ -22,14 +23,19 @@ func init() {
 
 var deleteWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "delete [file_hash]",
-		Short: "delete file with 'file_hash' (for provider)",
-		Long:  "delete file with 'file_hash', 'file_hash' must be the hash of original file",
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "delete / delete [file_hash]",
+		Short: "automatically clear files that are not in the order list or delete file with 'file_hash' (for provider)",
+		Long:  "automatically clear files that are not in the order list or delete file with 'file_hash', 'file_hash' must be the hash of original file",
+		Args:  cobra.MinimumNArgs(0),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
+		file_hash := ""
+		if len(args) != 0 {
+			file_hash = args[0]
+		}
+
 		reqBody := map[string]string{
-			"file_hash": args[0],
+			"file_hash": file_hash,
 		}
 
 		return reqBody, nil
@@ -43,52 +49,92 @@ var deleteWsCmd = &wsCmd{
 		// Check input
 		fileHash := args["file_hash"]
 		if fileHash == "" {
-			errString := "The field 'file_hash' is needed"
-			logger.Error(errString)
-			return deleteReturnMessage{
-				Info:   errString,
-				Status: 400,
+			// Get provider file map
+			fileMap, err := chain.GetProviderFileMap(wsc.Cfg, wsc.Cfg.Crust.Address)
+			if err != nil {
+				logger.Error(err.Error())
+				return deleteReturnMessage{
+					Info:   err.Error(),
+					Status: 500,
+				}
 			}
+
+			// List all files
+			fileStatusList, err := model.GetFileStatusList(wsc.Db)
+			if err != nil {
+				logger.Error(err.Error())
+				return deleteReturnMessage{
+					Info:   err.Error(),
+					Status: 500,
+				}
+			}
+
+			var deletedNum uint64 = 0
+			var freeSize uint64 = 0
+			for _, fileStatus := range fileStatusList {
+				if _, ok := fileMap["0x"+fileStatus.Hash]; ok {
+					continue
+				}
+
+				err, status := deleteFile(wsc, fileHash)
+				if err != nil {
+					logger.Info(err.Error())
+					return deleteReturnMessage{
+						Info:   err.Error(),
+						Status: status,
+					}
+				}
+
+				deletedNum++
+				freeSize = freeSize + fileStatus.SealedSize
+			}
+
+			deleteReturnMsg := deleteReturnMessage{
+				Info:   fmt.Sprintf("Delete '%d' files and free '%d' space successfully in %s !", deletedNum, freeSize, time.Since(timeStart)),
+				Status: 200,
+			}
+			logger.Info(deleteReturnMsg.Info)
+			return deleteReturnMsg
 		}
 
-		// Get file info
-		fileInfo, err := model.GetFileInfoFromDb(fileHash, wsc.Db, model.FileFlagInDb)
+		err, status := deleteFile(wsc, fileHash)
 		if err != nil {
-			logger.Error("%s", err)
+			logger.Info(err.Error())
 			return deleteReturnMessage{
 				Info:   err.Error(),
-				Status: 400,
-			}
-		}
-
-		// Clear file from db
-		if err = sworker.Delete(wsc.Cfg, fileInfo.MerkleTreeSealed.Hash); err != nil {
-			logger.Error("%s", err)
-			return deleteReturnMessage{
-				Info:   err.Error(),
-				Status: 500,
-			}
-		}
-
-		// Clear db
-		fileInfo.ClearDb(wsc.Db)
-
-		// Clear file
-		err = fileInfo.DeleteSealedFileFromFs(wsc.Fs)
-		if err != nil {
-			logger.Error("%s", err)
-			return deleteReturnMessage{
-				Info:   err.Error(),
-				Status: 500,
+				Status: status,
 			}
 		}
 
 		deleteReturnMsg := deleteReturnMessage{
 			Info:   fmt.Sprintf("Delete file '%s' successfully in %s !", fileHash, time.Since(timeStart)),
-			Status: 200,
+			Status: status,
 		}
 		logger.Info(deleteReturnMsg.Info)
 		return deleteReturnMsg
-
 	},
+}
+
+func deleteFile(wsc *wsCmd, fileHash string) (error, int) {
+	// Get file info
+	fileInfo, err := model.GetFileInfoFromDb(fileHash, wsc.Db, model.FileFlagInDb)
+	if err != nil {
+		return err, 400
+	}
+
+	// Clear file from db
+	if err = sworker.Delete(wsc.Cfg, fileInfo.MerkleTreeSealed.Hash); err != nil {
+		return err, 500
+	}
+
+	// Clear db
+	fileInfo.ClearDb(wsc.Db)
+
+	// Clear file
+	err = fileInfo.DeleteSealedFileFromFs(wsc.Fs)
+	if err != nil {
+		return err, 500
+	}
+
+	return nil, 200
 }
