@@ -90,10 +90,10 @@ type NodeDataMessage struct {
 
 // -----------------------------NodeInfoReturnMessage-----------------------------
 type NodeInfoReturnMessage struct {
-	Status  int    `json:"status"`
-	Info    string `json:"info"`
-	Fastdfs string `json:"fastdfs"`
-	Ipfs    string `json:"ipfs"`
+	Status         int    `json:"status"`
+	Info           string `json:"info"`
+	FastdfsAddress string `json:"fastdfs_address"`
+	IpfsAddress    string `json:"ipfs_address"`
 }
 
 func SendTextMessage(c *websocket.Conn, msg interface{}) {

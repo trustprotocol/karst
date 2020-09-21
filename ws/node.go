@@ -178,8 +178,8 @@ func nodeInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if string(message) == "address" {
-		nodeInfoReturnMsg.Fastdfs = cfg.Fs.Fastdfs.OuterTrackerAddrs
-		nodeInfoReturnMsg.Ipfs = cfg.Fs.Ipfs.OuterBaseUrl
+		nodeInfoReturnMsg.FastdfsAddress = cfg.Fs.Fastdfs.OuterTrackerAddrs
+		nodeInfoReturnMsg.IpfsAddress = cfg.Fs.Ipfs.OuterBaseUrl
 		model.SendTextMessage(c, nodeInfoReturnMsg)
 	} else {
 		nodeInfoReturnMsg.Info = fmt.Sprintf("Not support this request: %s", string(message))
