@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"karst/logger"
 	"karst/model"
 	"net/http"
@@ -141,5 +142,48 @@ func nodeData(w http.ResponseWriter, r *http.Request) {
 			logger.Error("(NodeData) Write err: %s", err)
 			return
 		}
+	}
+}
+
+// URL: /node/info
+func nodeInfo(w http.ResponseWriter, r *http.Request) {
+	// Upgrade http to ws
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Error("Upgrade: %s", err)
+		return
+	}
+	defer c.Close()
+
+	nodeInfoReturnMsg := model.NodeInfoReturnMessage{
+		Status: 200,
+	}
+
+	// request
+	mt, message, err := c.ReadMessage()
+	if err != nil {
+		logger.Error("Read err: %s", err)
+		nodeInfoReturnMsg.Info = err.Error()
+		nodeInfoReturnMsg.Status = 500
+		model.SendTextMessage(c, nodeInfoReturnMsg)
+		return
+	}
+
+	if mt != websocket.TextMessage {
+		nodeInfoReturnMsg.Info = fmt.Sprintf("Wrong message type is %d", mt)
+		logger.Error(nodeInfoReturnMsg.Info)
+		nodeInfoReturnMsg.Status = 400
+		model.SendTextMessage(c, nodeInfoReturnMsg)
+		return
+	}
+
+	if string(message) == "address" {
+		nodeInfoReturnMsg.Fastdfs = cfg.Fs.Fastdfs.OuterTrackerAddrs
+		nodeInfoReturnMsg.Ipfs = cfg.Fs.Ipfs.OuterBaseUrl
+		model.SendTextMessage(c, nodeInfoReturnMsg)
+	} else {
+		nodeInfoReturnMsg.Info = fmt.Sprintf("Not support this request: %s", string(message))
+		nodeInfoReturnMsg.Status = 400
+		model.SendTextMessage(c, nodeInfoReturnMsg)
 	}
 }

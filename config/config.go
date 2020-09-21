@@ -164,7 +164,7 @@ func (cfg *Configuration) Show() {
 		logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
 		logger.Info("Ipfs.OuterBaseUrl = %s", cfg.Fs.Ipfs.OuterBaseUrl)
 	} else if cfg.Fs.FsFlag == FASTDFS_FLAG {
-		logger.Info("Fastdfs.TrackerAddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
+		logger.Info("Fastdfs.TrackerAddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs[0])
 		logger.Info("Fastdfs.OuterTrackerAddrs = %s", cfg.Fs.Fastdfs.OuterTrackerAddrs)
 	}
 
