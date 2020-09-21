@@ -32,12 +32,14 @@ type SworkerConfiguration struct {
 }
 
 type IpfsConfiguration struct {
-	BaseUrl string
+	BaseUrl      string
+	OuterBaseUrl string
 }
 
 type FastdfsConfiguration struct {
-	TrackerAddrs []string
-	MaxConns     int
+	TrackerAddrs      []string
+	OuterTrackerAddrs string
+	MaxConns          int
 }
 
 type FsConfiguration struct {
@@ -120,13 +122,17 @@ func GetInstance() *Configuration {
 		} else if ipfsBaseUrl != "" {
 			config.Fs.FsFlag = IPFS_FLAG
 			config.Fs.Ipfs.BaseUrl = ipfsBaseUrl
+			config.Fs.Ipfs.OuterBaseUrl = viper.GetString("file_system.ipfs.base_outer_url")
 			config.Fs.Fastdfs.TrackerAddrs = []string{}
+			config.Fs.Fastdfs.OuterTrackerAddrs = ""
 			config.Fs.Fastdfs.MaxConns = 0
 		} else if fastdfsAddress != "" {
 			config.Fs.FsFlag = FASTDFS_FLAG
 			config.Fs.Fastdfs.TrackerAddrs = []string{fastdfsAddress}
+			config.Fs.Fastdfs.OuterTrackerAddrs = viper.GetString("file_system.fastdfs.outer_tracker_addrs")
 			config.Fs.Fastdfs.MaxConns = 100
 			config.Fs.Ipfs.BaseUrl = ""
+			config.Fs.Ipfs.OuterBaseUrl = ""
 		} else {
 			config.Fs.FsFlag = NOFS_FLAG
 		}
@@ -156,8 +162,10 @@ func (cfg *Configuration) Show() {
 
 	if cfg.Fs.FsFlag == IPFS_FLAG {
 		logger.Info("Ipfs.BaseUrl = %s", cfg.Fs.Ipfs.BaseUrl)
+		logger.Info("Ipfs.OuterBaseUrl = %s", cfg.Fs.Ipfs.OuterBaseUrl)
 	} else if cfg.Fs.FsFlag == FASTDFS_FLAG {
-		logger.Info("Fastdfs.TrackerSddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs)
+		logger.Info("Fastdfs.TrackerAddrs = %s", cfg.Fs.Fastdfs.TrackerAddrs[0])
+		logger.Info("Fastdfs.OuterTrackerAddrs = %s", cfg.Fs.Fastdfs.OuterTrackerAddrs)
 	}
 
 	if cfg.Debug {
@@ -197,7 +205,9 @@ func WriteDefault(configFilePath string) {
 
 	// File system configuration
 	viper.Set("file_system.ipfs.base_url", "")
+	viper.Set("file_system.ipfs.outer_base_url", "")
 	viper.Set("file_system.fastdfs.tracker_addrs", "")
+	viper.Set("file_system.fastdfs.outer_tracker_addrs", "")
 
 	// Write
 	if err := viper.WriteConfigAs(configFilePath); err != nil {

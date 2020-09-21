@@ -27,6 +27,7 @@ func StartServer(inConfig *config.Configuration, inFs filesystem.FsInterface, in
 
 	if fs != nil {
 		http.HandleFunc("/api/v0/node/data", nodeData)
+		http.HandleFunc("/api/v0/node/info", nodeInfo)
 		http.HandleFunc("/api/v0/file/seal", fileSeal)
 		http.HandleFunc("/api/v0/file/unseal", fileUnseal)
 		http.HandleFunc("/api/v0/file/finish", fileFinish)

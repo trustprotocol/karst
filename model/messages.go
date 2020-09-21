@@ -88,6 +88,14 @@ type NodeDataMessage struct {
 	NodeIndex uint64 `json:"node_index"`
 }
 
+// -----------------------------NodeInfoReturnMessage-----------------------------
+type NodeInfoReturnMessage struct {
+	Status         int    `json:"status"`
+	Info           string `json:"info"`
+	FastdfsAddress string `json:"fastdfs_address"`
+	IpfsAddress    string `json:"ipfs_address"`
+}
+
 func SendTextMessage(c *websocket.Conn, msg interface{}) {
 	msgBytes, _ := json.Marshal(msg)
 	err := c.WriteMessage(websocket.TextMessage, msgBytes)
