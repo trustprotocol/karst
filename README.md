@@ -26,10 +26,12 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
   },
   "file_system": {
     "fastdfs": {
-      "tracker_addrs": ""
+      "tracker_addrs": "",
+      "outer_tracker_addrs": ""
     },
     "ipfs": {
-      "base_url": ""
+      "base_url": "",
+      "outer_base_url": ""
     }
   }
 }
@@ -63,9 +65,15 @@ If you want to be a provider, please provide the correct sworker url and select 
 - 'file_system.fastdfs.tracker_addrs'
   - Explanation: the addresses of fastdfs tracker for fastdfs, this parameter is mutually exclusive with 'file_system.ipfs.base_url'
   - Example: 127.0.0.1:22122
+- 'file_system.fastdfs.outer_tracker_addrs'
+  - Explanation: the outer addresses of fastdfs tracker for fastdfs
+  - Example: 101.168.50.29:22122
 - 'file_system.ipfs.base_url'
   - Explanation: the url of ipfs, this parameter is mutually exclusive with 'file_system.fastdfs.tracker_addrs'
   - Example: 127.0.0.1:5001
+- 'file_system.ipfs.outer_base_url'
+  - Explanation: the outer addresses of ipfs
+  - Example: 101.168.50.29:5001
 
 ## Install & Run
 
