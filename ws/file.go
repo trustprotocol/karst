@@ -2,6 +2,7 @@ package ws
 
 import (
 	"fmt"
+	"karst/cache"
 	"karst/chain"
 	"karst/filesystem"
 	"karst/logger"
@@ -172,6 +173,16 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileUnsealReturnMsg)
 		return
 	}
+
+	// Lock cache
+	if err := cache.WaitLock(fileInfo.MerkleTreeSealed.Size); err != nil {
+		fileUnsealReturnMsg.Info = err.Error()
+		logger.Error(fileUnsealReturnMsg.Info)
+		fileUnsealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileUnsealReturnMsg)
+		return
+	}
+	defer cache.Unlock(fileInfo.MerkleTreeSealed.Size)
 
 	// Create file directory
 	fileStoreBasePath := filepath.FromSlash(cfg.KarstPaths.UnsealFilesPath + "/" + utils.RandString(10))

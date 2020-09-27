@@ -9,6 +9,5 @@ const (
 )
 
 const (
-	FileSizeLimit           = 10 * GB
-	InitPathMinimalCapacity = 2 * FileSizeLimit
+	InitPathMinimalCapacity = 50 * GB
 )

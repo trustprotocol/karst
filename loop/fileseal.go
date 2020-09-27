@@ -2,6 +2,7 @@ package loop
 
 import (
 	"encoding/json"
+	"karst/cache"
 	"karst/config"
 	"karst/filesystem"
 	"karst/logger"
@@ -76,12 +77,18 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			}
 			fileInfo.OriginalPath = originalPath
 
+			// Lock cache
+			if err := cache.WaitLock(fileInfo.MerkleTree.Size); err != nil {
+				logger.Error(err.Error())
+			}
+
 			// Get file from fs
 			err := fileInfo.GetOriginalFileFromFs(fs)
 			if err != nil {
 				logger.Error("Get whole file failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearOriginalFile()
+				cache.Unlock(fileInfo.MerkleTree.Size)
 				continue
 			}
 
@@ -91,6 +98,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				logger.Error("Fatal error in sealing file '%s' : %s", fileInfo.MerkleTree.Hash, err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearOriginalFile()
+				cache.Unlock(fileInfo.MerkleTree.Size)
 				continue
 			} else {
 				fileInfo.MerkleTreeSealed = merkleTreeSealed
@@ -102,6 +110,7 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				logger.Error("Put whole file failed, error is %s", err)
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()
+				cache.Unlock(fileInfo.MerkleTree.Size)
 				continue
 			}
 
@@ -116,12 +125,14 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 				_ = fileInfo.DeleteOriginalFileFromFs(fs)
 				fileInfo.ClearSealedFile()
 				fileInfo.ClearDb(db)
+				cache.Unlock(fileInfo.MerkleTree.Size)
 				continue
 			}
 
 			// Delete original file from fs
 			_ = fileInfo.DeleteOriginalFileFromFs(fs)
 			fileInfo.ClearSealedFile()
+			cache.Unlock(fileInfo.MerkleTree.Size)
 
 			logger.Info("Seal '%s' successfully in %s ! Sealed root hash is '%s'", fileInfo.MerkleTree.Hash, time.Since(timeStart), fileInfo.MerkleTreeSealed.Hash)
 
