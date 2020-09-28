@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"karst/cache"
 	"karst/chain"
 	"karst/config"
 	"karst/filesystem"
@@ -43,6 +44,9 @@ var daemonCmd = &cobra.Command{
 			os.Exit(-1)
 		}
 		defer db.Close()
+
+		// Set cache
+		cache.SetBasePath(cfg.KarstPaths.InitPath)
 
 		// Cmd apis
 		var baseWsCommands = []*wsCmd{

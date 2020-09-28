@@ -124,7 +124,10 @@ func (this *connPool) get() (net.Conn, error) {
 				return nil, fmt.Errorf("reach maxConns %d", this.maxConns)
 			}
 
-			_ = this.makeConn()
+			err := this.makeConn()
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 		this.conns.Remove(e)
