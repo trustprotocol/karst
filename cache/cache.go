@@ -19,7 +19,7 @@ func SetBasePath(tmpBasePath string) {
 }
 
 func WaitLock(size uint64) error {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1500; i++ {
 		canLock, err := Lock(size)
 		if err != nil {
 			return err
@@ -60,4 +60,11 @@ func Unlock(size uint64) {
 	} else {
 		lockCache = lockCache - size
 	}
+}
+
+func CanLock(size uint64) bool {
+	lock.Lock()
+	defer lock.Unlock()
+	diskUsage, _ := utils.NewDiskUsage(basePath)
+	return size < diskUsage.Free+lockCache
 }

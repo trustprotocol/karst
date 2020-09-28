@@ -94,6 +94,15 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Debug("The merkle tree of this file '%s' is legal", fileSealMsg.MerkleTree.Hash)
 
+	// Can deal
+	if !cache.CanLock(fileSealMsg.MerkleTree.Size) {
+		fileSealReturnMsg.Info = fmt.Sprintf("Please check the free space in the %s directory, the file cannot be processed, the file size is %d", cfg.KarstPaths.KarstPath, fileSealMsg.MerkleTree.Size)
+		logger.Error(fileSealReturnMsg.Info)
+		fileSealReturnMsg.Status = 500
+		model.SendTextMessage(c, fileSealReturnMsg)
+		return
+	}
+
 	// Put message into seal loop
 	if !loop.TryEnqueueFileSealJob(*fileSealMsg) {
 		fileSealReturnMsg.Info = "The seal queue is full or the seal loop doesn't start."
@@ -176,7 +185,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// Lock cache
 	if err := cache.WaitLock(fileInfo.MerkleTreeSealed.Size); err != nil {
-		fileUnsealReturnMsg.Info = err.Error()
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Please check the free space in the %s directory, the file cannot be processed, the file size is %d, error is: %s", cfg.KarstPaths.KarstPath, fileInfo.MerkleTreeSealed.Size, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)

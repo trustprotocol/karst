@@ -80,6 +80,9 @@ func fileSealLoop(cfg *config.Configuration, db *leveldb.DB, fs filesystem.FsInt
 			// Lock cache
 			if err := cache.WaitLock(fileInfo.MerkleTree.Size); err != nil {
 				logger.Error(err.Error())
+				_ = fileInfo.DeleteOriginalFileFromFs(fs)
+				fileInfo.ClearOriginalFile()
+				continue
 			}
 
 			// Get file from fs
