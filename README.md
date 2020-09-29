@@ -37,7 +37,7 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
 }
 ```
 
-### Configurations for client or provider
+### Configurations for client or merchant
 - 'port' 
   - Explanation: karst api port
   - Example: 17000
@@ -45,7 +45,7 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
   - Explanation: used to enable debug mode
   - Example: true
 - 'crust.address' 
-  - Explanation: chain account, for provider is controller account
+  - Explanation: chain account, for merchant is controller account
   - Example: 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
 - 'crust.backup'
   - Explanation: backup for chain account
@@ -57,8 +57,8 @@ Configuration file will be created by running './karst init' in $KARST_PATH/conf
   - Explanation: password for chain account
   - Example: 123456
 
-### Configurations for provider
-If you want to be a provider, please provide the correct sworker url and select a file system to fill in the relevant information
+### Configurations for merchant
+If you want to be a merchant, please provide the correct sworker url and select a file system to fill in the relevant information
 - 'sworker.base_url'
   - Explanation: sworker base url
   - Example: 127.0.0.1:12222
@@ -89,7 +89,7 @@ go build # for mac and windows, then move the kasrt bin to commands folder or ad
 
 ### Run
 
-For provider
+For merchant
 
 - Set $KARST_PATH to change karst installation location, default location is $Home/.karst/
 ```shell
@@ -138,7 +138,7 @@ For client
 ```shell
   karst split /home/crust/test/karst/1M.bin /home/crust/test/karst/output
 ```
-- Fill the stored_key of each fragment in fs. Then declare the file to chain and request provider to generate store proof
+- Fill the stored_key of each fragment in fs. Then declare the file to chain and request merchant to generate store proof
 ```shell
   karst declare "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"stored_key\":\"\",\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"stored_key\":\"group1/M00/00/5E/wKgyC17fI0KAYzlEAA__9-56uVA3640992\",\"links\":[]}]}" 1000 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
 ```
@@ -146,7 +146,7 @@ For client
 ```shell
   karst obtain e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX
 ```
-- After downloading the file successfully, use 'finish' to help provider to clear file
+- After downloading the file successfully, use 'finish' to help merchant to clear file
 ```shell
   karst finish "{\"hash\":\"e2f4b2f31c309e18dbe658d92b81c26bede6015b8da1464b38def2af7d55faef\",\"size\":1048567,\"links_num\":1,\"links\":[{\"hash\":\"055162be19abb648f4ff47f1292574192d9b7131f900f609bee0dd79c0e60970\",\"size\":1048567,\"links_num\":0,\"links\":[],\"stored_key\":\"group1/M00/00/00/wKgyC17sdDyAYVuQAA__9-56uVA2354372\"}],\"stored_key\":\"\"}" 5FqazaU79hjpEMiWTWZx81VjsYFst15eBuSBKdQLgQibD7CX 
 ```

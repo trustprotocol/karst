@@ -68,7 +68,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 		model.SendTextMessage(c, fileSealReturnMsg)
 		return
 	}
-	if sOrder.FileIdentifier != "0x"+fileSealMsg.MerkleTree.Hash || sOrder.Provider != cfg.Crust.Address {
+	if sOrder.FileIdentifier != "0x"+fileSealMsg.MerkleTree.Hash || sOrder.Merchant != cfg.Crust.Address {
 		fileSealReturnMsg.Info = fmt.Sprintf("Invalid order id: %s", fileSealMsg.StoreOrderHash)
 		logger.Error(fileSealReturnMsg.Info)
 		fileSealReturnMsg.Status = 400
@@ -114,7 +114,7 @@ func fileSeal(w http.ResponseWriter, r *http.Request) {
 
 	// Return success
 	fileSealReturnMsg.Info = fmt.Sprintf(
-		"File seal request for '%s' has been accept, storage order is '%s', the provider will seal it in backend",
+		"File seal request for '%s' has been accept, storage order is '%s', the merchant will seal it in backend",
 		fileSealMsg.MerkleTree.Hash,
 		fileSealMsg.StoreOrderHash)
 	logger.Info(fileSealReturnMsg.Info)
@@ -166,7 +166,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 
 	// Check if the file has been stored locally
 	if ok, _ := db.Has([]byte(model.FileFlagInDb+fileUnsealMsg.FileHash), nil); !ok {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in provider db", fileUnsealMsg.FileHash)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in merchant db", fileUnsealMsg.FileHash)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 404
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -176,7 +176,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	// TODO: Duplicate file processing
 	fileInfo, err := model.GetFileInfoFromDb(fileUnsealMsg.FileHash, db, model.FileFlagInDb)
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Read this file '%s' from provider db failed: %s", fileUnsealMsg.FileHash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Read this file '%s' from merchant db failed: %s", fileUnsealMsg.FileHash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -218,7 +218,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	// Get file from fs
 	err = fileInfo.GetSealedFileFromFs(fs)
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from provider fs: %s", fileInfo.MerkleTreeSealed.Hash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in getting sealed file '%s' from merchant fs: %s", fileInfo.MerkleTreeSealed.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -240,7 +240,7 @@ func fileUnseal(w http.ResponseWriter, r *http.Request) {
 	// Save file into fs
 	err = fileInfo.PutOriginalFileIntoFs(fs)
 	if err != nil {
-		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into provider fs: %s", fileInfo.MerkleTree.Hash, err)
+		fileUnsealReturnMsg.Info = fmt.Sprintf("Fatal error in putting file '%s' into merchant fs: %s", fileInfo.MerkleTree.Hash, err)
 		logger.Error(fileUnsealReturnMsg.Info)
 		fileUnsealReturnMsg.Status = 500
 		model.SendTextMessage(c, fileUnsealReturnMsg)
@@ -295,7 +295,7 @@ func fileFinish(w http.ResponseWriter, r *http.Request) {
 
 	// Check file exist
 	if ok, _ := db.Has([]byte(model.FileFlagInDb+fileFinishMsg.MerkleTree.Hash), nil); !ok {
-		fileFinishReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in provider db", fileFinishMsg.MerkleTree.Hash)
+		fileFinishReturnMsg.Info = fmt.Sprintf("Can't find this file '%s' in merchant db", fileFinishMsg.MerkleTree.Hash)
 		logger.Error(fileFinishReturnMsg.Info)
 		fileFinishReturnMsg.Status = 404
 		model.SendTextMessage(c, fileFinishReturnMsg)

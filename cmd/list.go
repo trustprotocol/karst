@@ -29,7 +29,7 @@ func init() {
 var listWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "list or list [file_hash]",
-		Short: "list information about file or all files recorded (for provider)",
+		Short: "list information about file or all files recorded (for merchant)",
 		Long:  "list information about file or all files recorded, for example: 'karst list' or 'karst list 658ad0af1e331b6d6aa36e3c95a65ef5bdc161520c25ef09d3d11a583f4af7a2'",
 		Args:  cobra.MinimumNArgs(0),
 	},

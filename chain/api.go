@@ -16,7 +16,7 @@ type registerRequest struct {
 	Backup       string `json:"backup"`
 }
 
-type provider struct {
+type merchant struct {
 	Address string              `json:"address"`
 	FileMap map[string][]string `json:"file_map"`
 }
@@ -27,14 +27,14 @@ type sOrderRequest struct {
 }
 
 type storageOrder struct {
-	Provider       string `json:"provider"`
+	Merchant       string `json:"merchant"`
 	FileIdentifier string `json:"fileIdentifier"`
 	FileSize       uint64 `json:"fileSize"`
 	Duration       uint64 `json:"duration"`
 }
 
 type fullStorageOrder struct {
-	Provider       string `json:"provider"`
+	Merchant       string `json:"merchant"`
 	Client         string `json:"client"`
 	FileIdentifier string `json:"file_identifier"`
 	FileSize       uint64 `json:"file_size"`
@@ -75,7 +75,7 @@ func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) 
 	}
 
 	if r.Response().StatusCode != 200 {
-		return fmt.Errorf("Register karst provider failed! Error code is: %d", r.Response().StatusCode)
+		return fmt.Errorf("Register karst merchant failed! Error code is: %d", r.Response().StatusCode)
 	}
 
 	logger.Debug("Register response: %s", r)
@@ -83,59 +83,59 @@ func Register(cfg *config.Configuration, karstAddr string, storagePrice uint64) 
 	return nil
 }
 
-func GetProviderAddr(cfg *config.Configuration, pChainAddr string) (string, error) {
+func GetMerchantAddr(cfg *config.Configuration, pChainAddr string) (string, error) {
 	param := req.Param{
 		"address": pChainAddr,
 	}
-	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/provider", param)
+	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/merchant", param)
 
 	if err != nil {
 		return "", err
 	}
 
 	if r.Response().StatusCode != 200 {
-		return "", fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
+		return "", fmt.Errorf("Get merchant failed! Error code is: %d", r.Response().StatusCode)
 	}
-	logger.Debug("Get provider response: %s", r)
+	logger.Debug("Get merchant response: %s", r)
 
-	provider := provider{}
-	if err = r.ToJSON(&provider); err != nil {
+	merchant := merchant{}
+	if err = r.ToJSON(&merchant); err != nil {
 		return "", err
 	}
 
-	return provider.Address, nil
+	return merchant.Address, nil
 }
 
-func GetProviderFileMap(cfg *config.Configuration, pChainAddr string) (map[string][]string, error) {
+func GetMerchantFileMap(cfg *config.Configuration, pChainAddr string) (map[string][]string, error) {
 	param := req.Param{
 		"address": pChainAddr,
 	}
-	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/provider", param)
+	r, err := req.Get("http://"+cfg.Crust.BaseUrl+"/api/v1/market/merchant", param)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if r.Response().StatusCode != 200 {
-		return nil, fmt.Errorf("Get provider failed! Error code is: %d", r.Response().StatusCode)
+		return nil, fmt.Errorf("Get merchant failed! Error code is: %d", r.Response().StatusCode)
 	}
-	logger.Debug("Get provider response: %s", r)
+	logger.Debug("Get merchant response: %s", r)
 
-	provider := provider{}
-	if err = r.ToJSON(&provider); err != nil {
+	merchant := merchant{}
+	if err = r.ToJSON(&merchant); err != nil {
 		return nil, err
 	}
 
-	return provider.FileMap, nil
+	return merchant.FileMap, nil
 }
 
-func PlaceStorageOrder(cfg *config.Configuration, provider string, duration uint64, fId string, fSize uint64) (string, error) {
+func PlaceStorageOrder(cfg *config.Configuration, merchant string, duration uint64, fId string, fSize uint64) (string, error) {
 	header := req.Header{
 		"password": cfg.Crust.Password,
 	}
 
 	sOrder := storageOrder{
-		Provider:       provider,
+		Merchant:       merchant,
 		FileIdentifier: fId,
 		FileSize:       fSize,
 		Duration:       duration,
