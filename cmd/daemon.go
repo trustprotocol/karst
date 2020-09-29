@@ -56,7 +56,7 @@ var daemonCmd = &cobra.Command{
 			finishWsCmd,
 		}
 
-		var providerWsCommands = []*wsCmd{
+		var merchantWsCommands = []*wsCmd{
 			registerWsCmd,
 			listWsCmd,
 			deleteWsCmd}
@@ -74,8 +74,8 @@ var daemonCmd = &cobra.Command{
 			// File seal loop
 			loop.StartFileSealLoop(cfg, db, fs)
 
-			// Register provider cmd apis
-			for _, wsCmd := range providerWsCommands {
+			// Register merchant cmd apis
+			for _, wsCmd := range merchantWsCommands {
 				wsCmd.Register(db, cfg, fs)
 			}
 
@@ -84,7 +84,7 @@ var daemonCmd = &cobra.Command{
 				wsCmd.Register(db, cfg, fs)
 			}
 
-			logger.Info("--------- Provider model ------------")
+			logger.Info("--------- Merchant model ------------")
 			if err := ws.StartServer(cfg, fs, db); err != nil {
 				logger.Error("%s", err)
 			}

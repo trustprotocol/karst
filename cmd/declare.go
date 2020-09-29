@@ -28,16 +28,16 @@ func init() {
 
 var declareWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "declare [merkle_tree] [duration] [provider]",
-		Short: "Declare file to chain and request provider to generate store proof",
-		Long:  "Declare file to chain and request provider to generate store proof, the 'merkle_tree' need contain store key of each file part, the 'provider' is chain address and 'duration' is number of blocks lasting for file storage",
+		Use:   "declare [merkle_tree] [duration] [merchant]",
+		Short: "Declare file to chain and request merchant to generate store proof",
+		Long:  "Declare file to chain and request merchant to generate store proof, the 'merkle_tree' need contain store key of each file part, the 'merchant' is chain address and 'duration' is number of blocks lasting for file storage",
 		Args:  cobra.MinimumNArgs(3),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
 		reqBody := map[string]string{
 			"merkle_tree": args[0],
 			"duration":    args[1],
-			"provider":    args[2],
+			"merchant":    args[2],
 		}
 
 		return reqBody, nil
@@ -69,9 +69,9 @@ var declareWsCmd = &wsCmd{
 			}
 		}
 
-		provider := args["provider"]
-		if provider == "" {
-			errString := "The field 'provider' is needed"
+		merchant := args["merchant"]
+		if merchant == "" {
+			errString := "The field 'merchant' is needed"
 			logger.Error(errString)
 			return declareReturnMsg{
 				Info:   errString,
@@ -99,7 +99,7 @@ var declareWsCmd = &wsCmd{
 		}
 
 		// Declare message
-		declareReturnMsg := declareFile(mt, provider, duration, wsc.Cfg)
+		declareReturnMsg := declareFile(mt, merchant, duration, wsc.Cfg)
 		if declareReturnMsg.Status != 200 {
 			logger.Error(declareReturnMsg.Info)
 		} else {
@@ -111,21 +111,21 @@ var declareWsCmd = &wsCmd{
 	},
 }
 
-func declareFile(mt merkletree.MerkleTreeNode, provider string, duration uint64, cfg *config.Configuration) declareReturnMsg {
-	// Get provider seal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
+func declareFile(mt merkletree.MerkleTreeNode, merchant string, duration uint64, cfg *config.Configuration) declareReturnMsg {
+	// Get merchant seal address
+	karstBaseAddr, err := chain.GetMerchantAddr(cfg, merchant)
 	if err != nil {
 		return declareReturnMsg{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", merchant, err),
 			Status: 400,
 		}
 	}
 
 	karstFileSealAddr := karstBaseAddr + "/api/v0/file/seal"
-	logger.Debug("Get file seal address '%s' of '%s' success.", karstFileSealAddr, provider)
+	logger.Debug("Get file seal address '%s' of '%s' success.", karstFileSealAddr, merchant)
 
 	// Send order
-	storeOrderHash, err := chain.PlaceStorageOrder(cfg, provider, duration, "0x"+mt.Hash, mt.Size)
+	storeOrderHash, err := chain.PlaceStorageOrder(cfg, merchant, duration, "0x"+mt.Hash, mt.Size)
 	if err != nil {
 		return declareReturnMsg{
 			Info:   fmt.Sprintf("Create store order failed, err is: %s", err),
@@ -135,7 +135,7 @@ func declareFile(mt merkletree.MerkleTreeNode, provider string, duration uint64,
 
 	logger.Debug("Create store order '%s' success.", storeOrderHash)
 
-	// Request provider to seal file and give store proof
+	// Request merchant to seal file and give store proof
 	logger.Info("Connecting to %s to seal file", karstFileSealAddr)
 	c, _, err := websocket.DefaultDialer.Dial(karstFileSealAddr, nil)
 	if err != nil {

@@ -26,15 +26,15 @@ func init() {
 
 var obtainWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "obtain [file_hash] [provider]",
-		Short: "Obtain file information from provider",
-		Long:  "Obtain file information from provider, the provider will unseal file and return file information",
+		Use:   "obtain [file_hash] [merchant]",
+		Short: "Obtain file information from merchant",
+		Long:  "Obtain file information from merchant, the merchant will unseal file and return file information",
 		Args:  cobra.MinimumNArgs(2),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
 		reqBody := map[string]string{
 			"file_hash": args[0],
-			"provider":  args[1],
+			"merchant":  args[1],
 		}
 		return reqBody, nil
 	},
@@ -54,9 +54,9 @@ var obtainWsCmd = &wsCmd{
 				Status: 400,
 			}
 		}
-		provider := args["provider"]
-		if provider == "" {
-			errString := "The field 'provider' is needed"
+		merchant := args["merchant"]
+		if merchant == "" {
+			errString := "The field 'merchant' is needed"
 			logger.Error(errString)
 			return obtainReturnMessage{
 				Info:   errString,
@@ -65,31 +65,31 @@ var obtainWsCmd = &wsCmd{
 		}
 
 		// Register karst address
-		obtainReturnMsg := requestProviderUnseal(fileHash, provider, wsc.Cfg)
+		obtainReturnMsg := requestMerchantUnseal(fileHash, merchant, wsc.Cfg)
 		if obtainReturnMsg.Status != 200 {
-			logger.Error("Request provider '%s' to unseal '%s' failed, error is: %s", fileHash, provider, obtainReturnMsg.Info)
+			logger.Error("Request merchant '%s' to unseal '%s' failed, error is: %s", fileHash, merchant, obtainReturnMsg.Info)
 			return obtainReturnMsg
 		} else {
-			obtainReturnMsg.Info = fmt.Sprintf("Obtain '%s' from '%s' successfully in %s !", fileHash, provider, time.Since(timeStart))
+			obtainReturnMsg.Info = fmt.Sprintf("Obtain '%s' from '%s' successfully in %s !", fileHash, merchant, time.Since(timeStart))
 			return obtainReturnMsg
 		}
 	},
 }
 
-func requestProviderUnseal(fileHash string, provider string, cfg *config.Configuration) obtainReturnMessage {
-	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
+func requestMerchantUnseal(fileHash string, merchant string, cfg *config.Configuration) obtainReturnMessage {
+	// Get merchant unseal address
+	karstBaseAddr, err := chain.GetMerchantAddr(cfg, merchant)
 	if err != nil {
 		return obtainReturnMessage{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", merchant, err),
 			Status: 400,
 		}
 	}
 
 	karstFileUnsealAddr := karstBaseAddr + "/api/v0/file/unseal"
-	logger.Debug("Get file unseal address '%s' of '%s' success.", karstFileUnsealAddr, provider)
+	logger.Debug("Get file unseal address '%s' of '%s' success.", karstFileUnsealAddr, merchant)
 
-	// Request provider to unseal file and return stored information
+	// Request merchant to unseal file and return stored information
 	logger.Info("Connecting to %s to unseal file and get information", karstFileUnsealAddr)
 	c, _, err := websocket.DefaultDialer.Dial(karstFileUnsealAddr, nil)
 	if err != nil {

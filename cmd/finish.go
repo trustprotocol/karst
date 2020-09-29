@@ -26,15 +26,15 @@ func init() {
 
 var finishWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
-		Use:   "finish [merkle_tree] [provider]",
-		Short: "Notify the provider that the file has been transferred",
-		Long:  "Notify the provider that the file has been transferred, the provider will deal this file",
+		Use:   "finish [merkle_tree] [merchant]",
+		Short: "Notify the merchant that the file has been transferred",
+		Long:  "Notify the merchant that the file has been transferred, the merchant will deal this file",
 		Args:  cobra.MinimumNArgs(2),
 	},
 	Connecter: func(cmd *cobra.Command, args []string) (map[string]string, error) {
 		reqBody := map[string]string{
 			"merkle_tree": args[0],
-			"provider":    args[1],
+			"merchant":    args[1],
 		}
 		return reqBody, nil
 	},
@@ -66,9 +66,9 @@ var finishWsCmd = &wsCmd{
 			}
 		}
 
-		provider := args["provider"]
-		if provider == "" {
-			errString := "The field 'provider' is needed"
+		merchant := args["merchant"]
+		if merchant == "" {
+			errString := "The field 'merchant' is needed"
 			logger.Error(errString)
 			return declareReturnMsg{
 				Info:   errString,
@@ -76,32 +76,32 @@ var finishWsCmd = &wsCmd{
 			}
 		}
 
-		// Notify provider to finish this file
-		finishReturnMsg := notifyProviderFinish(&mt, provider, wsc.Cfg)
+		// Notify merchant to finish this file
+		finishReturnMsg := notifyMerchantFinish(&mt, merchant, wsc.Cfg)
 		if finishReturnMsg.Status != 200 {
-			logger.Error("Request provider '%s' to finish '%s' failed, error is: %s", mt.Hash, provider, finishReturnMsg.Info)
+			logger.Error("Request merchant '%s' to finish '%s' failed, error is: %s", mt.Hash, merchant, finishReturnMsg.Info)
 			return finishReturnMsg
 		} else {
-			finishReturnMsg.Info = fmt.Sprintf("Request provider '%s' to finish '%s' successfully in %s !", mt.Hash, provider, time.Since(timeStart))
+			finishReturnMsg.Info = fmt.Sprintf("Request merchant '%s' to finish '%s' successfully in %s !", mt.Hash, merchant, time.Since(timeStart))
 			return finishReturnMsg
 		}
 	},
 }
 
-func notifyProviderFinish(mt *merkletree.MerkleTreeNode, provider string, cfg *config.Configuration) finishReturnMessage {
-	// Get provider unseal address
-	karstBaseAddr, err := chain.GetProviderAddr(cfg, provider)
+func notifyMerchantFinish(mt *merkletree.MerkleTreeNode, merchant string, cfg *config.Configuration) finishReturnMessage {
+	// Get merchant unseal address
+	karstBaseAddr, err := chain.GetMerchantAddr(cfg, merchant)
 	if err != nil {
 		return finishReturnMessage{
-			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", provider, err),
+			Info:   fmt.Sprintf("Can't read karst address of '%s', error: %s", merchant, err),
 			Status: 400,
 		}
 	}
 
 	karstFileFinishAddr := karstBaseAddr + "/api/v0/file/finish"
-	logger.Debug("Get file finish address '%s' of '%s' success.", karstFileFinishAddr, provider)
+	logger.Debug("Get file finish address '%s' of '%s' success.", karstFileFinishAddr, merchant)
 
-	// Request provider to seal file and give store proof
+	// Request merchant to seal file and give store proof
 	logger.Info("Connecting to %s to finish file", karstFileFinishAddr)
 	c, _, err := websocket.DefaultDialer.Dial(karstFileFinishAddr, nil)
 	if err != nil {

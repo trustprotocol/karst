@@ -24,7 +24,7 @@ func init() {
 var deleteWsCmd = &wsCmd{
 	Cmd: &cobra.Command{
 		Use:   "delete / delete [file_hash]",
-		Short: "automatically clear files that are not in the order list or delete file with 'file_hash' (for provider)",
+		Short: "automatically clear files that are not in the order list or delete file with 'file_hash' (for merchant)",
 		Long:  "automatically clear files that are not in the order list or delete file with 'file_hash', 'file_hash' must be the hash of original file",
 		Args:  cobra.MinimumNArgs(0),
 	},
@@ -49,8 +49,8 @@ var deleteWsCmd = &wsCmd{
 		// Check input
 		fileHash := args["file_hash"]
 		if fileHash == "" {
-			// Get provider file map
-			fileMap, err := chain.GetProviderFileMap(wsc.Cfg, wsc.Cfg.Crust.Address)
+			// Get merchant file map
+			fileMap, err := chain.GetMerchantFileMap(wsc.Cfg, wsc.Cfg.Crust.Address)
 			if err != nil {
 				logger.Error(err.Error())
 				return deleteReturnMessage{
