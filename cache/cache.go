@@ -68,3 +68,8 @@ func CanLock(size uint64) bool {
 	diskUsage, _ := utils.NewDiskUsage(basePath)
 	return size < diskUsage.Free+lockCache
 }
+
+func GetCacheSize() uint64 {
+	diskUsage, _ := utils.NewDiskUsage(basePath)
+	return diskUsage.Free + lockCache
+}
