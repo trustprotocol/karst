@@ -181,6 +181,16 @@ func nodeInfo(w http.ResponseWriter, r *http.Request) {
 		nodeInfoReturnMsg.FastdfsAddress = cfg.Fs.Fastdfs.OuterTrackerAddrs
 		nodeInfoReturnMsg.IpfsAddress = cfg.Fs.Ipfs.OuterBaseUrl
 		model.SendTextMessage(c, nodeInfoReturnMsg)
+	} else if string(message) == "storage" {
+		nodeInfoReturnMsg.StorageStatus, err = model.GetStorageStatus(db)
+		if err != nil {
+			nodeInfoReturnMsg.Info = err.Error()
+			logger.Error(nodeInfoReturnMsg.Info)
+			nodeInfoReturnMsg.Status = 500
+			model.SendTextMessage(c, nodeInfoReturnMsg)
+			return
+		}
+		model.SendTextMessage(c, nodeInfoReturnMsg)
 	} else {
 		nodeInfoReturnMsg.Info = fmt.Sprintf("Not support this request: %s", string(message))
 		nodeInfoReturnMsg.Status = 400
