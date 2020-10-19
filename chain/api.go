@@ -38,10 +38,6 @@ type fullStorageOrder struct {
 	Client         string `json:"client"`
 	FileIdentifier string `json:"file_identifier"`
 	FileSize       uint64 `json:"file_size"`
-	Duration       uint64 `json:"duration"`
-	CreatedOn      uint64 `json:"created_on"`
-	ExpiredOn      uint64 `json:"expired_on"`
-	OrderStatus    string `json:"order_status"`
 }
 
 type sOrderResponse struct {
